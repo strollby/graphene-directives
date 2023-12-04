@@ -77,8 +77,7 @@ schema = build_schema(
 
 
 def test_cache() -> None:
-    print(schema)
-    assert str(schema) == (
+    assert str(schema).strip("\n") == (
         '"""Caching directive to control cache behavior of fields or fragments."""\n'
         "directive @stellate_cache(\n"
         ' """Specifies the maximum age for cache in seconds."""\n'

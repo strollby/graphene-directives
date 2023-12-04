@@ -53,7 +53,10 @@ class Schema(GrapheneSchema):
 
         # Format each keyword argument as a string, considering its type
         formatted_args = [
-            f'{to_camel_case(key)}: {"\"" + str(value) + "\"" if isinstance(value, str) else value}'
+            (
+                f"{to_camel_case(key)}: "
+                + (f'"{value}"' if isinstance(value, str) else str(value))
+            )
             for key, value in kwargs.items()
             if value is not None and to_camel_case(key) in directive.args
         ]
