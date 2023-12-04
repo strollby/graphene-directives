@@ -6,8 +6,8 @@ authors = ["Strollby <developers@strollby.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
-graphene = "^3.3"
+python = ">=3.8"
+graphene = ">=3"
 
 [tool.poetry.group.dev.dependencies]
 bandit = "*"
@@ -72,5 +72,5 @@ builtins-ignorelist = ["id", "type"] # ignore built in id and type (conflict wit
 minversion = "6.0"
 addopts = "-v -s"
 testpaths = [
-    "examples/cache.py",
+    "tests/test_cache.py",
 ]
