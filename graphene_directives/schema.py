@@ -1,5 +1,5 @@
 import re
-from typing import Collection, Any, Callable
+from typing import Collection, Any, Callable, Union
 
 import graphene
 from graphene import Schema as GrapheneSchema
@@ -34,7 +34,7 @@ class Schema(GrapheneSchema):
         mutation: graphene.ObjectType = None,
         subscription: graphene.ObjectType = None,
         types: list[graphene.ObjectType] = None,
-        directives: Collection[GraphQLDirective] | None = None,
+        directives: Union[Collection[GraphQLDirective], None] = None,
         auto_camelcase: bool = True,
     ):
         self.directives = directives or []
@@ -93,7 +93,7 @@ class Schema(GrapheneSchema):
         return " ".join([get_field_name(field) for field in fields])
 
     @staticmethod
-    def field_to_string(field: GraphQLObjectType | GraphQLInterfaceType) -> str:
+    def field_to_string(field: Union[GraphQLObjectType, GraphQLInterfaceType]) -> str:
         str_field = print_fields(field)
         # Remove blocks added by `print_block`
         block_match = re.match(

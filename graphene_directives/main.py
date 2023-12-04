@@ -1,4 +1,4 @@
-from typing import Collection
+from typing import Collection, Union
 
 from graphene import ObjectType
 from graphene import Schema as GrapheneSchema
@@ -8,9 +8,9 @@ from .schema import Schema
 
 
 def build_schema(
-    query: ObjectType | None = None,
-    mutation: ObjectType | None = None,
-    directives: Collection[GraphQLDirective] | None = None,
+    query: Union[ObjectType, None] = None,
+    mutation: Union[ObjectType, None] = None,
+    directives: Union[Collection[GraphQLDirective], None] = None,
     **kwargs: dict,
 ) -> GrapheneSchema:
     schema = Schema(query=query, mutation=mutation, directives=directives, **kwargs)

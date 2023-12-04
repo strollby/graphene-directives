@@ -1,11 +1,11 @@
-from typing import Any, Callable
+from typing import Any, Callable, Union
 
 import graphene
 
 
 def directive(
     name: str,
-    field: Any | None = None,  # noqa
+    field: Union[Any, None] = None,  # noqa
     **kwargs: Any,  # noqa
 ) -> Callable:
     """
