@@ -1,9 +1,28 @@
 [tool.poetry]
 name = "graphene-directives"
-version = "0.1.0"
+version = "0.1.1"
+packages = [{include = "graphene_directives"}]
 description = "Schema Directives implementation for graphene"
 authors = ["Strollby <developers@strollby.com>"]
 readme = "README.md"
+license = "MIT"
+homepage = "https://github.com/strollby/graphene-directives"
+repository = "https://github.com/strollby/graphene-directives"
+documentation = "https://github.com/strollby/graphene-directives"
+keywords = [
+    "graphene-directives",
+    "graphene",
+    "graphql",
+    "graphql-directives",
+    "graphql-custom-directives",
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12"
+]
 
 [tool.poetry.dependencies]
 python = ">=3.9,<4"
@@ -15,13 +34,24 @@ pre-commit = "*"
 pytest = "*"
 pytest-dependency = "*"
 ruff = "*"
+nox = "*"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.ruff.lint]
 
+# Test Tools
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-v -s"
+testpaths = [
+    "tests/test_cache.py",
+]
+
+
+# Linters & Type Checkers
+[tool.ruff.lint]
 select = [
     #    "ALL"
     "E", # pycodestyle (E)
@@ -38,7 +68,6 @@ select = [
     "ISC", # flake8-implicit-str-concat (ISC)
     "ASYNC", # flake8-async (ASYNC)
 ]
-
 ignore = [
     "ANN101", # Missing type annotation for self in method
     "ANN102", # Missing type annotation for cls in classmethod
@@ -61,16 +90,8 @@ builtins-ignorelist = ["id", "type"] # ignore built in id and type (conflict wit
     "F403", # unable to detect undefined names (using *)
     "E501", #Line too long (99 > 88)
 ]
-
 # F811 - "redefinition of unused variable"
 # F401 - "imported but unused"
 # F811, F401 are conflicting with tests with scenarios
 "*/tests/*" = ["F811", "F401"]
 "*/test_health/*" = ["F811", "F401"]
-
-[tool.pytest.ini_options]
-minversion = "6.0"
-addopts = "-v -s"
-testpaths = [
-    "tests/test_cache.py",
-]
