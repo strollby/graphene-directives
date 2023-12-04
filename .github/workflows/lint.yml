@@ -25,6 +25,6 @@ jobs:
         poetry install --only dev
     - name: ruff check
       run: |
-        ruff check .
-        ruff format --diff .
+        poetry run ruff check .
+        poetry run ruff format --diff .
 
