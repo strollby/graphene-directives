@@ -29,10 +29,11 @@ jobs:
           poetry install --with dev
       - name: Ruff check
         run: |
-          ruff check .
+          poetry run ruff check .
+          poetry run ruff format --diff .
       - name: Test with pytest
         run: |
-          pytest
+          poetry run pytest
           
   deploy:
     needs: build
