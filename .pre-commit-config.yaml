@@ -1,0 +1,41 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: end-of-file-fixer
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.5
+    hooks:
+      - id: ruff
+        args: [ --fix, --preview ]
+        stages: [ commit, push ]
+      - id: ruff-format
+        stages: [ commit, push ]
+
+  - repo: https://github.com/zricethezav/gitleaks
+    rev: v8.18.0
+    hooks:
+      - id: gitleaks
+  - repo: https://github.com/PyCQA/bandit
+    rev: '1.7.5'
+    hooks:
+      - id: bandit
+        args: [ -ll ]
+
+#  - repo: https://github.com/pylint-dev/pylint
+#    rev: 23.9.1
+#    hooks:
+#      - id: pylint
+#        name: pylint
+#        entry: pylint
+#        language: system
+#        types: [ python ]
+#        args:
+#          [
+#            "-rn", # Only display messages
+#            "-sn", # Don't display the score
+#          ]
+#        language_version: python3.12
