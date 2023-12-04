@@ -27,7 +27,7 @@ class MonoFieldType:
         self.fields = {name: field}
 
 
-class _Schema(GrapheneSchema):
+class Schema(GrapheneSchema):
     def __init__(
         self,
         query: graphene.ObjectType = None,
