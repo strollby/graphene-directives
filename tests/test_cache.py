@@ -29,39 +29,39 @@ StellateCacheDirective = GraphQLDirective(
 )
 
 
-@directive(name=StellateCacheDirective.name, max_age=100)
+@directive(target_directive=StellateCacheDirective, max_age=100)
 class Position(graphene.ObjectType):
     x = graphene.Int(required=True)
     y = directive(
-        name=StellateCacheDirective.name, field=graphene.Int(required=True), max_age=60
+        target_directive=StellateCacheDirective,
+        field=graphene.Int(required=True),
+        max_age=60,
     )
 
 
-@directive(name=StellateCacheDirective.name, max_age=60)
+@directive(target_directive=StellateCacheDirective, max_age=60)
 class Human(graphene.ObjectType):
     name = graphene.String()
     born_in = graphene.String()
 
 
-@directive(name=StellateCacheDirective.name, max_age=200)
+@directive(StellateCacheDirective, max_age=200)
 class Droid(graphene.ObjectType):
-    name = directive(
-        name=StellateCacheDirective.name, field=graphene.String(), max_age=300
-    )
+    name = directive(StellateCacheDirective, field=graphene.String(), max_age=300)
     primary_function = graphene.String()
 
 
-@directive(name=StellateCacheDirective.name, max_age=200)
+@directive(StellateCacheDirective, max_age=200)
 class Starship(graphene.ObjectType):
     name = graphene.String()
     length = directive(
-        name=StellateCacheDirective.name,
+        target_directive=StellateCacheDirective,
         field=graphene.Int(deprecation_reason="Koo"),
         max_age=60,
     )
 
 
-@directive(name=StellateCacheDirective.name, max_age=500)
+@directive(target_directive=StellateCacheDirective, max_age=500)
 class SearchResult(graphene.Union):
     class Meta:
         types = (Human, Droid, Starship)

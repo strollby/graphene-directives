@@ -1,23 +1,24 @@
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional
 
 import graphene
+from graphql import GraphQLDirective
 
 
 def directive(
-    name: str,
-    field: Union[Any, None] = None,  # noqa
+    target_directive: GraphQLDirective,
+    *,
+    field: Optional[Any] = None,  # noqa
     **kwargs: Any,  # noqa
 ) -> Callable:
     """
     Decorator to use to add directive a given type of field.
     """
 
-    # noinspection PyProtectedMember,PyPep8Naming
     def decorator(type_: graphene.ObjectType) -> graphene.ObjectType:
-        setattr(type_, f"_{name}", kwargs)
+        setattr(type_, f"_{target_directive.name}", kwargs)
         return type_
 
     if field:
-        setattr(field, f"_{name}", kwargs)
+        setattr(field, f"_{target_directive.name}", kwargs)
         return field
     return decorator
