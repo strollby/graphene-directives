@@ -1,20 +1,20 @@
 import re
-from typing import Collection, Any, Callable, Union
+from typing import Any, Callable, Collection, Union
 
 import graphene
 from graphene import Schema as GrapheneSchema
+from graphene.types.enum import EnumOptions
+from graphene.types.scalars import ScalarOptions
 from graphene.types.union import UnionOptions
 from graphene.utils.str_converters import to_camel_case
 from graphql import (
-    print_schema,
-    GraphQLObjectType,
-    GraphQLInterfaceType,
-    GraphQLDirective,
     DirectiveLocation,
+    GraphQLDirective,
+    GraphQLInterfaceType,
+    GraphQLObjectType,
+    print_schema,
 )
 from graphql.utilities.print_schema import print_fields  # noqa
-from graphene.types.enum import EnumOptions
-from graphene.types.scalars import ScalarOptions
 
 
 class MonoFieldType:
@@ -174,7 +174,7 @@ class Schema(GrapheneSchema):
             repl_str = rf"\1{type_annotation} "
             pattern = re.compile(type_def_re)
             string_schema = pattern.sub(repl_str, string_schema)
-        return re.sub(r"[ ]+", " ", string_schema)  # noqa
+        return string_schema
 
     def get_directive_types(self) -> set:
         """
@@ -224,7 +224,4 @@ class Schema(GrapheneSchema):
         string_schema = self.add_type_fields_decorators(
             self.get_directive_fields(), string_schema
         )
-        string_schema = self.add_type_decorators(
-            self.get_directive_types(), string_schema
-        )
-        return re.sub(r"[ ]+", " ", string_schema)  # noqa
+        return self.add_type_decorators(self.get_directive_types(), string_schema)

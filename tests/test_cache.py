@@ -1,14 +1,18 @@
+import os
+
 import graphene
 from graphql import (
-    GraphQLDirective,
     DirectiveLocation,
     GraphQLArgument,
-    GraphQLNonNull,
+    GraphQLDirective,
     GraphQLInt,
+    GraphQLNonNull,
     GraphQLString,
 )
 
 from graphene_directives import build_schema, directive
+
+curr_dir = os.path.dirname(os.path.realpath(__file__))
 
 StellateCacheDirective = GraphQLDirective(
     name="stellate_cache",
@@ -77,42 +81,5 @@ schema = build_schema(
 
 
 def test_cache() -> None:
-    assert str(schema).strip("\n") == (
-        '"""Caching directive to control cache behavior of fields or fragments."""\n'
-        "directive @stellate_cache(\n"
-        ' """Specifies the maximum age for cache in seconds."""\n'
-        " maxAge: Int!\n"
-        "\n"
-        ' """Stale-while-revalidate value in seconds. Optional."""\n'
-        " swr: Int\n"
-        "\n"
-        ' """Scope of the cache. Optional."""\n'
-        " scope: String\n"
-        ") on FIELD | OBJECT\n"
-        "\n"
-        "union SearchResult @stellate_cache(maxAge: 500) = Human | Droid | Starship\n"
-        "\n"
-        "type Human @stellate_cache(maxAge: 60) {\n"
-        " name: String\n"
-        " bornIn: String\n"
-        "}\n"
-        "\n"
-        "type Droid @stellate_cache(maxAge: 200) {\n"
-        " name: String @stellate_cache(maxAge: 300)\n"
-        " primaryFunction: String\n"
-        "}\n"
-        "\n"
-        "type Starship @stellate_cache(maxAge: 200) {\n"
-        " name: String\n"
-        ' length: Int @deprecated(reason: "Koo") @stellate_cache(maxAge: 60)\n'
-        "}\n"
-        "\n"
-        "type Query {\n"
-        ' position: Position @deprecated(reason: "Koo")\n'
-        "}\n"
-        "\n"
-        "type Position @stellate_cache(maxAge: 100) {\n"
-        " x: Int!\n"
-        " y: Int! @stellate_cache(maxAge: 60)\n"
-        "}"
-    )
+    with open(f"{curr_dir}/schema_files/test_cache.graphql") as f:
+        assert str(schema) == f.read()

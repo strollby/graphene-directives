@@ -1,0 +1,37 @@
+"""Caching directive to control cache behavior of fields or fragments."""
+directive @stellate_cache(
+  """Specifies the maximum age for cache in seconds."""
+  maxAge: Int!
+
+  """Stale-while-revalidate value in seconds. Optional."""
+  swr: Int
+
+  """Scope of the cache. Optional."""
+  scope: String
+) on FIELD | OBJECT
+
+union SearchResult @stellate_cache(maxAge: 500) = Human | Droid | Starship
+
+type Human @stellate_cache(maxAge: 60) {
+  name: String
+  bornIn: String
+}
+
+type Droid  @stellate_cache(maxAge: 200) {
+  name: String @stellate_cache(maxAge: 300)
+  primaryFunction: String
+}
+
+type Starship  @stellate_cache(maxAge: 200) {
+  name: String
+  length: Int @deprecated(reason: "Koo") @stellate_cache(maxAge: 60)
+}
+
+type Query {
+  position: Position @deprecated(reason: "Koo")
+}
+
+type Position  @stellate_cache(maxAge: 100) {
+  x: Int!
+  y: Int! @stellate_cache(maxAge: 60)
+}
