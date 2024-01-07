@@ -1,5 +1,5 @@
 """Caching directive to control cache behavior of fields or fragments."""
-directive @stellate_cache(
+directive @cache(
   """Specifies the maximum age for cache in seconds."""
   maxAge: Int!
 
@@ -10,28 +10,28 @@ directive @stellate_cache(
   scope: String
 ) on FIELD | OBJECT
 
-union SearchResult @stellate_cache(maxAge: 500) = Human | Droid | Starship
+union SearchResult @cache(maxAge: 500) = Human | Droid | Starship
 
-type Human @stellate_cache(maxAge: 60) {
+type Human @cache(maxAge: 60) {
   name: String
   bornIn: String
 }
 
-type Droid  @stellate_cache(maxAge: 200) {
-  name: String @stellate_cache(maxAge: 300)
+type Droid  @cache(maxAge: 200) {
+  name: String @cache(maxAge: 300)
   primaryFunction: String
 }
 
-type Starship  @stellate_cache(maxAge: 200) {
+type Starship  @cache(maxAge: 200) {
   name: String
-  length: Int @deprecated(reason: "Koo") @stellate_cache(maxAge: 60)
+  length: Int @deprecated(reason: "Koo") @cache(maxAge: 60)
 }
 
 type Query {
   position: Position @deprecated(reason: "Koo")
 }
 
-type Position  @stellate_cache(maxAge: 100) {
+type Position  @cache(maxAge: 100) {
   x: Int!
-  y: Int! @stellate_cache(maxAge: 60)
+  y: Int! @cache(maxAge: 60)
 }
