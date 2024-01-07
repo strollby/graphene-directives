@@ -10,7 +10,7 @@ from graphql import (
     GraphQLString,
 )
 
-from graphene_directives import build_schema, directive
+from graphene_directives import build_decorator_from_directive, build_schema
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -33,37 +33,34 @@ CacheDirective = GraphQLDirective(
 )
 
 
-@directive(target_directive=CacheDirective, max_age=100)
+cache = build_decorator_from_directive(target_directive=CacheDirective)
+
+
+@cache(max_age=100)
 class Position(graphene.ObjectType):
     x = graphene.Int(required=True)
-    y = directive(
-        target_directive=CacheDirective, field=graphene.Int(required=True), max_age=60
-    )
+    y = cache(field=graphene.Int(required=True), max_age=60)
 
 
-@directive(target_directive=CacheDirective, max_age=60)
+@cache(max_age=60)
 class Human(graphene.ObjectType):
     name = graphene.String()
     born_in = graphene.String()
 
 
-@directive(CacheDirective, max_age=200)
+@cache(max_age=200)
 class Droid(graphene.ObjectType):
-    name = directive(CacheDirective, field=graphene.String(), max_age=300)
+    name = cache(field=graphene.String(), max_age=300)
     primary_function = graphene.String()
 
 
-@directive(CacheDirective, max_age=200)
+@cache(max_age=200)
 class Starship(graphene.ObjectType):
     name = graphene.String()
-    length = directive(
-        target_directive=CacheDirective,
-        field=graphene.Int(deprecation_reason="Koo"),
-        max_age=60,
-    )
+    length = cache(field=graphene.Int(deprecation_reason="Koo"), max_age=60)
 
 
-@directive(target_directive=CacheDirective, max_age=500)
+@cache(max_age=500)
 class SearchResult(graphene.Union):
     class Meta:
         types = (Human, Droid, Starship)
