@@ -20,6 +20,21 @@ Schema Directives implementation for graphene
 
 ------------------------
 
+## Directive Locations Supported
+
+- [x] DirectiveLocation.OBJECT
+- [x] DirectiveLocation.ENUM
+- [x] DirectiveLocation.INTERFACE
+- [x] DirectiveLocation.UNION
+- [x] DirectiveLocation.SCALAR
+- [x] DirectiveLocation.FIELD_DEFINITION
+- [x] DirectiveLocation.INPUT_FIELD_DEFINITION
+- [x] DirectiveLocation.INPUT_OBJECT
+- [x] DirectiveLocation.ENUM_VALUE
+- [x] DirectiveLocation.ARGUMENT_DEFINITION,
+
+------------------------
+
 ## Example
 
 ### Using `@directive`
@@ -27,19 +42,17 @@ Schema Directives implementation for graphene
 ```python
 import graphene
 from graphql import (
-    DirectiveLocation,
     GraphQLArgument,
-    GraphQLDirective,
     GraphQLInt,
     GraphQLNonNull,
     GraphQLString,
 )
 
-from graphene_directives import build_schema, directive
+from graphene_directives import CustomDirective, DirectiveLocation, build_schema, directive
 
-CacheDirective = GraphQLDirective(
+CacheDirective = CustomDirective(
     name="cache",
-    locations=[DirectiveLocation.FIELD, DirectiveLocation.OBJECT],
+    locations=[DirectiveLocation.FIELD_DEFINITION, DirectiveLocation.OBJECT],
     args={
         "maxAge": GraphQLArgument(
             GraphQLNonNull(GraphQLInt),
@@ -73,24 +86,22 @@ schema = build_schema(
 ```
 
 
-### Using `@build_decorator_from_directive`
+### Using `directive_decorator`
 
 ```python
 import graphene
 from graphql import (
-    DirectiveLocation,
     GraphQLArgument,
-    GraphQLDirective,
     GraphQLInt,
     GraphQLNonNull,
     GraphQLString,
 )
 
-from graphene_directives import build_decorator_from_directive, build_schema
+from graphene_directives import CustomDirective, DirectiveLocation, build_schema, directive_decorator
 
-CacheDirective = GraphQLDirective(
+CacheDirective = CustomDirective(
     name="cache",
-    locations=[DirectiveLocation.FIELD, DirectiveLocation.OBJECT],
+    locations=[DirectiveLocation.FIELD_DEFINITION, DirectiveLocation.OBJECT],
     args={
         "maxAge": GraphQLArgument(
             GraphQLNonNull(GraphQLInt),
@@ -107,7 +118,7 @@ CacheDirective = GraphQLDirective(
 )
 
 # This returns a partial of directive function
-cache = build_decorator_from_directive(target_directive=CacheDirective)
+cache = directive_decorator(target_directive=CacheDirective)
 
 
 @cache(max_age=200)
@@ -125,3 +136,68 @@ schema = build_schema(
     query=Query, directives=[CacheDirective]
 )
 ```
+
+### Custom Input Validation
+
+```python
+import graphene
+from graphql import (
+    GraphQLArgument,
+    GraphQLDirective,
+    GraphQLInt,
+    GraphQLNonNull,
+    GraphQLString,
+)
+
+from graphene_directives import CustomDirective, DirectiveLocation, build_schema, directive_decorator
+
+
+def validate_input(_directive: GraphQLDirective, inputs: dict) -> bool:
+    if inputs.get("max_age") > 2500:
+        return False
+    return True
+
+
+CacheDirective = CustomDirective(
+    name="cache",
+    locations=[DirectiveLocation.FIELD_DEFINITION, DirectiveLocation.OBJECT],
+    args={
+        "maxAge": GraphQLArgument(
+            GraphQLNonNull(GraphQLInt),
+            description="Specifies the maximum age for cache in seconds.",
+        ),
+        "swr": GraphQLArgument(
+            GraphQLInt, description="Stale-while-revalidate value in seconds. Optional."
+        ),
+        "scope": GraphQLArgument(
+            GraphQLString, description="Scope of the cache. Optional."
+        ),
+    },
+    description="Caching directive to control cache behavior of fields or fragments.",
+    validator=validate_input,
+)
+
+# This returns a partial of directive function
+cache = directive_decorator(target_directive=CacheDirective)
+
+
+@cache(max_age=200)
+class SomeType(graphene.ObjectType):
+    field_1 = cache(field=graphene.String(), max_age=300)
+    field_2 = cache(field=graphene.String(), max_age=300, swr=2)
+    field_3 = graphene.String()
+
+
+class Query(graphene.ObjectType):
+    some_query = graphene.Field(SomeType)
+
+
+schema = build_schema(
+    query=Query, directives=[CacheDirective]
+)
+```
+
+
+### Complex Use Cases
+
+Refer [`Code`](./example/complex_uses.py) and [`Graphql Output`](./example/complex_uses.graphql)

@@ -8,7 +8,7 @@ directive @cache(
 
   """Scope of the cache. Optional."""
   scope: String
-) on FIELD | OBJECT
+) on FIELD_DEFINITION | OBJECT | UNION
 
 union SearchResult @cache(maxAge: 500) = Human | Droid | Starship
 

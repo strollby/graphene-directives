@@ -1,6 +1,6 @@
 from typing import Collection, Union
 
-from graphene import ObjectType
+import graphene
 from graphene import Schema as GrapheneSchema
 from graphql import GraphQLDirective
 
@@ -8,11 +8,18 @@ from .schema import Schema
 
 
 def build_schema(
-    query: Union[ObjectType, None] = None,
-    mutation: Union[ObjectType, None] = None,
+    query: graphene.ObjectType = None,
+    mutation: graphene.ObjectType = None,
+    subscription: graphene.ObjectType = None,
+    types: list[graphene.ObjectType] = None,
     directives: Union[Collection[GraphQLDirective], None] = None,
-    **kwargs: dict,
+    auto_camelcase: bool = True,
 ) -> GrapheneSchema:
-    schema = Schema(query=query, mutation=mutation, directives=directives, **kwargs)
-    schema.auto_camelcase = kwargs.get("auto_camelcase", True)
-    return schema
+    return Schema(
+        query=query,
+        mutation=mutation,
+        subscription=subscription,
+        types=types,
+        directives=directives,
+        auto_camelcase=auto_camelcase,
+    )
