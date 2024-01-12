@@ -31,7 +31,7 @@ CacheDirective = CustomDirective(
         DirectiveLocation.SCALAR,
     ],
     args={
-        "maxAge": GraphQLArgument(
+        "max_age": GraphQLArgument(
             GraphQLNonNull(GraphQLInt),
             description="Specifies the maximum age for cache in seconds.",
         ),
@@ -131,7 +131,7 @@ schema = build_schema(
     query=Query,
     types=(Animal, TruthEnum, HumanInput, Human, Position),
     directives=(CacheDirective, AuthenticatedDirective, HiddenDirective),
-)  # noqa
+)
 
 
 def test_generate_schema() -> None:

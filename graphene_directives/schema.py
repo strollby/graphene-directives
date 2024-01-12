@@ -31,6 +31,7 @@ from graphql.utilities.print_schema import (
 from .directive import CustomDirectiveMeta
 from .exceptions import DirectiveValidationError
 from .parsers import (
+    decorator_string,
     entity_type_to_fields_string,
     enum_type_to_fields_string,
     input_type_to_fields_string,
@@ -64,24 +65,6 @@ class Schema(GrapheneSchema):
             directives=directives,
             auto_camelcase=auto_camelcase,
         )
-
-    def decorator_resolver(self, directive, **kwargs):  # noqa
-        directive_name = str(directive)
-        if len(directive.args) == 0:
-            return directive_name
-
-        # Format each keyword argument as a string, considering its type
-        formatted_args = [
-            (
-                f"{to_camel_case(key)}: "
-                + (f'"{value}"' if isinstance(value, str) else str(value))
-            )
-            for key, value in kwargs.items()
-            if value is not None and to_camel_case(key) in directive.args
-        ]
-
-        # Construct the directive string
-        return f"{directive_name}({', '.join(formatted_args)})"
 
     def field_name_to_type_attribute(
         self, model: graphene.ObjectType
@@ -140,7 +123,7 @@ class Schema(GrapheneSchema):
             directives = []
             for directive in self.directives:
                 if has_field_attribute(arg, directive):
-                    decorator_value = get_field_attribute_value(arg, directive)
+                    directive_values = get_field_attribute_value(arg, directive)
                     if required_directive_field_types in set(directive.locations):
                         raise DirectiveValidationError(
                             ", ".join(
@@ -151,10 +134,9 @@ class Schema(GrapheneSchema):
                                 ]
                             )
                         )
-                    directive_str = self.decorator_resolver(
-                        directive, **decorator_value
-                    )
-                    directives.append(directive_str)
+                    for directive_value in directive_values:
+                        directive_str = decorator_string(directive, **directive_value)
+                        directives.append(directive_str)
 
             new_args.append(base_str + " ".join(directives))
 
@@ -257,7 +239,7 @@ class Schema(GrapheneSchema):
 
                 for directive in self.directives:
                     if has_field_attribute(field, directive):
-                        decorator_value = get_field_attribute_value(field, directive)
+                        directive_values = get_field_attribute_value(field, directive)
                         if required_directive_field_types in set(directive.locations):
                             raise DirectiveValidationError(
                                 ", ".join(
@@ -268,9 +250,10 @@ class Schema(GrapheneSchema):
                                     ]
                                 )
                             )
-                        str_field += (
-                            f" {self.decorator_resolver(directive, **decorator_value)}"
-                        )
+                        for directive_value in directive_values:
+                            str_field += (
+                                f" {decorator_string(directive, **directive_value)}"
+                            )
 
                 str_fields.append(str_field)
 
@@ -326,10 +309,13 @@ class Schema(GrapheneSchema):
             directive_annotations = []
             for directive in self.directives:
                 if has_non_field_attribute(non_field, directive):
-                    input_args = get_non_field_attribute_value(non_field, directive)
-                    directive_annotations.append(
-                        f"{self.decorator_resolver(directive, **input_args)}"
+                    directive_values = get_non_field_attribute_value(
+                        non_field, directive
                     )
+                    for directive_value in directive_values:
+                        directive_annotations.append(
+                            f"{decorator_string(directive, **directive_value)}"
+                        )
 
             annotation = " ".join(directive_annotations)
             annotation = (
@@ -438,4 +424,4 @@ class Schema(GrapheneSchema):
                     print_directive(directive) + "\n\n", ""
                 )
 
-        return string_schema
+        return string_schema.strip()

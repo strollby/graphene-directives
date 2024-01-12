@@ -22,6 +22,7 @@ Schema Directives implementation for graphene
 
 ## Directive Locations Supported
 
+- [x] DirectiveLocation.SCHEMA
 - [x] DirectiveLocation.OBJECT
 - [x] DirectiveLocation.ENUM
 - [x] DirectiveLocation.INTERFACE
@@ -54,7 +55,7 @@ CacheDirective = CustomDirective(
     name="cache",
     locations=[DirectiveLocation.FIELD_DEFINITION, DirectiveLocation.OBJECT],
     args={
-        "maxAge": GraphQLArgument(
+        "max_age": GraphQLArgument(
             GraphQLNonNull(GraphQLInt),
             description="Specifies the maximum age for cache in seconds.",
         ),
@@ -103,7 +104,7 @@ CacheDirective = CustomDirective(
     name="cache",
     locations=[DirectiveLocation.FIELD_DEFINITION, DirectiveLocation.OBJECT],
     args={
-        "maxAge": GraphQLArgument(
+        "max_age": GraphQLArgument(
             GraphQLNonNull(GraphQLInt),
             description="Specifies the maximum age for cache in seconds.",
         ),
@@ -162,7 +163,7 @@ CacheDirective = CustomDirective(
     name="cache",
     locations=[DirectiveLocation.FIELD_DEFINITION, DirectiveLocation.OBJECT],
     args={
-        "maxAge": GraphQLArgument(
+        "max_age": GraphQLArgument(
             GraphQLNonNull(GraphQLInt),
             description="Specifies the maximum age for cache in seconds.",
         ),

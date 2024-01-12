@@ -21,7 +21,7 @@ def test_invalid_location_types() -> None:
             name="cache",
             locations=[GrapheneDirectiveLocation.FIELD, DirectiveLocation.OBJECT],
             args={
-                "maxAge": GraphQLArgument(
+                "max_age": GraphQLArgument(
                     GraphQLNonNull(GraphQLInt),
                     description="Specifies the maximum age for cache in seconds.",
                 ),
@@ -44,7 +44,7 @@ def test_invalid_location_types_allow() -> None:
         name="cache",
         locations=[GrapheneDirectiveLocation.FIELD, DirectiveLocation.OBJECT],
         args={
-            "maxAge": GraphQLArgument(
+            "max_age": GraphQLArgument(
                 GraphQLNonNull(GraphQLInt),
                 description="Specifies the maximum age for cache in seconds.",
             ),
@@ -66,7 +66,7 @@ def test_correct_location() -> None:
         name="cache",
         locations=list(DirectiveLocation),
         args={
-            "maxAge": GraphQLArgument(
+            "max_age": GraphQLArgument(
                 GraphQLNonNull(GraphQLInt),
                 description="Specifies the maximum age for cache in seconds.",
             ),
@@ -86,7 +86,7 @@ def test_correct_location() -> None:
         name="cache2",
         locations=list(GrapheneDirectiveLocation),
         args={
-            "maxAge": GraphQLArgument(
+            "max_age": GraphQLArgument(
                 GraphQLNonNull(GraphQLInt),
                 description="Specifies the maximum age for cache in seconds.",
             ),

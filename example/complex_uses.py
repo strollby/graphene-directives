@@ -39,7 +39,7 @@ CacheDirective = CustomDirective(
         DirectiveLocation.SCALAR,
     ],
     args={
-        "maxAge": GraphQLArgument(
+        "max_age": GraphQLArgument(
             GraphQLNonNull(GraphQLInt),
             description="Specifies the maximum age for cache in seconds.",
         ),
@@ -85,14 +85,27 @@ KeyDirective = CustomDirective(
 )
 
 # No argument directive
-HiddenDirective = CustomDirective(
-    name="hidden",
+InternalDirective = CustomDirective(
+    name="internal",
     locations=[
         DirectiveLocation.OBJECT,
         DirectiveLocation.FIELD_DEFINITION,
         DirectiveLocation.ARGUMENT_DEFINITION,
     ],
-    description="Auth directive to control authorization behavior.",
+    description="Directive to indicate this is a internal field.",
+)
+
+# A Repeatable directive
+RepeatableDirective = CustomDirective(
+    name="repeatable_directive",
+    locations=[DirectiveLocation.OBJECT, DirectiveLocation.FIELD_DEFINITION],
+    description="A repeatable directive.",
+    args={
+        "service_name": GraphQLArgument(
+            GraphQLNonNull(GraphQLBoolean), description="Service Name required"
+        )
+    },
+    is_repeatable=True,
 )
 
 
@@ -179,27 +192,45 @@ class DateNewScalar(graphene.Scalar):  # DirectiveLocation.SCALAR
 
 
 @directive(target_directive=KeyDirective)
-@directive(target_directive=HiddenDirective)
+@directive(target_directive=InternalDirective)
 class Admin(graphene.ObjectType):
     name = graphene.String()
     password = graphene.String()
 
 
 @directive(target_directive=AuthenticatedDirective, required=True)
-@directive(target_directive=AuthenticatedDirective, required=False)
 class User(graphene.ObjectType):
     name = graphene.String()
     password = graphene.String()
     price = graphene.Field(
         graphene.String,
         currency=directive(  # DirectiveLocation.ARGUMENT_DEFINITION
-            HiddenDirective, field=graphene.Argument(graphene.Int)
+            InternalDirective, field=graphene.Argument(graphene.Int)
         ),  # Argument
         country=directive(  # Multiple DirectiveLocation.ARGUMENT_DEFINITION
             target_directive=AuthenticatedDirective,
-            field=directive(HiddenDirective, field=graphene.Argument(graphene.Int)),
+            field=directive(InternalDirective, field=graphene.Argument(graphene.Int)),
             required=True,
-        ),  # Argument Definition (Multiple directives)
+        ),
+    )
+
+
+@directive(target_directive=RepeatableDirective, service_name="ProductService")
+@directive(target_directive=RepeatableDirective, service_name="CompanyService")
+@directive(target_directive=AuthenticatedDirective, required=True)
+class Company(graphene.ObjectType):
+    established = graphene.Int(required=True)
+    name = directive(
+        target_directive=RepeatableDirective,
+        field=directive(
+            target_directive=RepeatableDirective,
+            field=graphene.String(
+                required=True,
+                deprecation_reason="This field is deprecated and will be removed in future",
+            ),
+            service_name="CompanyService Field",
+        ),
+        service_name="ProductService Field",
     )
 
 
@@ -209,9 +240,24 @@ class Query(graphene.ObjectType):
 
 schema = build_schema(
     query=Query,
-    types=(SearchResult, Animal, Admin, HumanInput, TruthEnum, DateNewScalar, User),
-    directives=(CacheDirective, AuthenticatedDirective, HiddenDirective, KeyDirective),
-)  # noqa
+    types=(
+        SearchResult,
+        Animal,
+        Admin,
+        HumanInput,
+        TruthEnum,
+        DateNewScalar,
+        User,
+        Company,
+    ),
+    directives=(
+        CacheDirective,
+        AuthenticatedDirective,
+        InternalDirective,
+        KeyDirective,
+        RepeatableDirective,
+    ),
+)
 
 
 def generate_schema() -> None:

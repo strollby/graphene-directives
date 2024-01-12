@@ -16,8 +16,14 @@ directive @authenticated(
   required: Boolean!
 ) on OBJECT | INTERFACE | ENUM | ENUM_VALUE | UNION | INPUT_OBJECT | FIELD_DEFINITION | SCALAR | ARGUMENT_DEFINITION
 
-"""Auth directive to control authorization behavior."""
-directive @hidden on OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION
+"""Directive to indicate this is a internal field."""
+directive @internal on OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION
+
+"""A repeatable directive."""
+directive @repeatable_directive(
+  """Service Name required"""
+  serviceName: Boolean!
+) repeatable on OBJECT | FIELD_DEFINITION
 
 union SearchResult @cache(maxAge: 500) @authenticated(required: True) = Human | Droid | Starship
 
@@ -42,7 +48,7 @@ interface Animal  @cache(maxAge: 100) @authenticated(required: True) {
   kind: Int! @cache(maxAge: 60)
 }
 
-type Admin @hidden @key {
+type Admin @internal @key {
   name: String
   password: String
 }
@@ -63,7 +69,12 @@ scalar DateNewScalar @cache(maxAge: 500) @authenticated(required: True)
 type User  @authenticated(required: True) {
   name: String
   password: String
-  price(currency: Int @hidden, country: Int @authenticated(required: True) @hidden): String
+  price(currency: Int @internal, country: Int @authenticated(required: True) @internal): String
+}
+
+type Company  @authenticated(required: True) @repeatable_directive(serviceName: "CompanyService") @repeatable_directive(serviceName: "ProductService") {
+  established: Int!
+  name: String! @deprecated(reason: "This field is deprecated and will be removed in future") @repeatable_directive(serviceName: "CompanyService Field") @repeatable_directive(serviceName: "ProductService Field")
 }
 
 type Query {

@@ -1,4 +1,4 @@
-from typing import Collection, Union
+from typing import Collection, Type, Union
 
 import graphene
 from graphene import Schema as GrapheneSchema
@@ -8,10 +8,10 @@ from .schema import Schema
 
 
 def build_schema(
-    query: graphene.ObjectType = None,
-    mutation: graphene.ObjectType = None,
-    subscription: graphene.ObjectType = None,
-    types: list[graphene.ObjectType] = None,
+    query: Union[graphene.ObjectType, Type[graphene.ObjectType]] = None,
+    mutation: Union[graphene.ObjectType, Type[graphene.ObjectType]] = None,
+    subscription: Union[graphene.ObjectType, Type[graphene.ObjectType]] = None,
+    types: Collection[Union[graphene.ObjectType, Type[graphene.ObjectType]]] = None,
     directives: Union[Collection[GraphQLDirective], None] = None,
     auto_camelcase: bool = True,
 ) -> GrapheneSchema:

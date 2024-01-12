@@ -5,6 +5,7 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
       - id: end-of-file-fixer
+        exclude: .*\.graphql
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.12

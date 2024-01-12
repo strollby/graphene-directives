@@ -20,7 +20,7 @@ CacheDirective = CustomDirective(
         DirectiveLocation.UNION,
     ],
     args={
-        "maxAge": GraphQLArgument(
+        "max_age": GraphQLArgument(
             GraphQLNonNull(GraphQLInt),
             description="Specifies the maximum age for cache in seconds.",
         ),
@@ -72,7 +72,7 @@ class Query(graphene.ObjectType):
     position = graphene.Field(Position, deprecation_reason="Koo")
 
 
-schema = build_schema(query=Query, types=(SearchResult,), directives=[CacheDirective])  # noqa
+schema = build_schema(query=Query, types=(SearchResult,), directives=[CacheDirective])
 
 
 def test_generate_schema() -> None:

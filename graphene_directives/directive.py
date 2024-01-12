@@ -19,7 +19,7 @@ from .exceptions import (
     DirectiveInvalidTypeError,
     DirectiveValidationError,
 )
-from .utils import field_attribute_name, non_field_attribute_name
+from .utils import field_attribute_name, non_field_attribute_name, set_attribute_value
 
 
 @dataclass
@@ -88,6 +88,13 @@ def CustomDirective(  # noqa
             f"directive @{name} location type invalid expected {DirectiveLocation} from graphene_directives"
         )
 
+    if args is not None:
+        camel_cased_args = {}
+        for arg_name, arg_value in args.items():
+            camel_cased_args[to_camel_case(arg_name)] = arg_value
+    else:
+        camel_cased_args = args
+
     target_directive = GraphQLDirective(
         name=name,
         locations=[
@@ -96,7 +103,7 @@ def CustomDirective(  # noqa
             else location
             for location in locations
         ],
-        args=args,
+        args=camel_cased_args,
         is_repeatable=is_repeatable,
         description=description,
         extensions=extensions,
@@ -142,16 +149,13 @@ def CustomDirective(  # noqa
 
 
 def directive(
-    target_directive: GraphQLDirective,
-    *,
-    field: Optional[Any] = None,  # noqa
-    **_kwargs: Any,  # noqa
+    target_directive: GraphQLDirective, *, field: Optional[Any] = None, **_kwargs: Any
 ) -> Callable:
     """
     Decorator to use to add directive a given type of field.
     """
 
-    if not hasattr(target_directive, "_graphene_directive"):  # noqa
+    if not hasattr(target_directive, "_graphene_directive"):
         raise DirectiveInvalidTypeError(target_directive)
 
     meta_data: CustomDirectiveMeta = getattr(target_directive, "_graphene_directive")
@@ -163,7 +167,7 @@ def directive(
     custom_validator = meta_data.validator
 
     for arg_name, arg in target_directive.args.items():
-        data = kwargs.get(arg_name, None)
+        data = kwargs.get(arg_name)
         if data is None and isinstance(arg.type, GraphQLNonNull):
             raise DirectiveValidationError(
                 f'Argument "{arg_name}" is required for {directive_name}'
@@ -174,7 +178,7 @@ def directive(
             f"Custom Validation Failed for {directive_name} with args: ({kwargs})"
         )
 
-    def decorator(type_: Any) -> Any:  # noqa: ANN401
+    def decorator(type_: Any) -> Any:
         if not meta_data.supports_non_field_types:
             raise DirectiveValidationError(
                 f"{directive_name} cannot be used at non field level"
@@ -188,10 +192,11 @@ def directive(
                 f"{directive_name} cannot be used for {type_}, valid levels are: {[str(i) for i in meta_data.valid_types]}"
             )
 
-        setattr(
-            type_,
-            non_field_attribute_name(target_directive),
-            {"valid": True} if meta_data.has_no_argument else kwargs,
+        set_attribute_value(
+            type_=type_,
+            attribute_name=non_field_attribute_name(target_directive),
+            target_directive=target_directive,
+            data={} if meta_data.has_no_argument else kwargs,
         )
         return type_
 
@@ -201,10 +206,11 @@ def directive(
                 f"{directive_name} cannot be used at field level"
             )
 
-        setattr(
-            field,
-            field_attribute_name(target_directive),
-            {"valid": True} if meta_data.has_no_argument else kwargs,
+        set_attribute_value(
+            type_=field,
+            attribute_name=field_attribute_name(target_directive),
+            target_directive=target_directive,
+            data={} if meta_data.has_no_argument else kwargs,
         )
 
         return field
