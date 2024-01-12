@@ -9,7 +9,7 @@ from graphql import (
     GraphQLString,
 )
 
-from graphene_directives import ACCEPTED_TYPES, CustomDirective, DirectiveLocation
+from graphene_directives import CustomDirective, DirectiveLocation
 from graphene_directives.exceptions import DirectiveInvalidArgTypeError
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
