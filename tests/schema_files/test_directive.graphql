@@ -1,3 +1,9 @@
+extend schema
+	@link(url: "https://spec.graphql.org/v1.0")
+	@compose(directiveName: "lowercase")
+	@compose(directiveName: "uppercase")
+	@compose(directiveName: "lowercase")
+
 """Caching directive to control cache behavior of fields or fragments."""
 directive @cache(
   """Specifies the maximum age for cache in seconds."""
@@ -20,7 +26,10 @@ directive @authenticated(
 directive @hidden on OBJECT | ARGUMENT_DEFINITION
 
 """Schema directive to link files"""
-directive @link on SCHEMA
+directive @link(
+  """Url required"""
+  url: String!
+) on SCHEMA
 
 union SearchResult @cache(maxAge: 500) @authenticated(required: True) = Human | Droid | Starship
 

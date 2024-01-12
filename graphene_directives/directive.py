@@ -1,18 +1,13 @@
-from dataclasses import dataclass
 from functools import partial
-from typing import Any, Callable, Collection, Dict, Optional, Union
+from typing import Any, Callable, Collection, Dict, Optional
 
 from graphene.utils.str_converters import to_camel_case
-from graphql import (
-    DirectiveLocation as GrapheneDirectiveLocation,
-    GraphQLArgument,
-    GraphQLDirective,
-    GraphQLNonNull,
-)
+from graphql import GraphQLArgument, GraphQLDirective, GraphQLNonNull
 from graphql.language import ast
 
 from .constants import ACCEPTED_TYPES, FIELD_TYPES, LOCATION_NON_FIELD_VALIDATOR
 from .constants import DirectiveLocation
+from .data_models import CustomDirectiveMeta
 from .exceptions import (
     DirectiveCustomValidationError,
     DirectiveInvalidArgTypeError,
@@ -20,18 +15,6 @@ from .exceptions import (
     DirectiveValidationError,
 )
 from .utils import field_attribute_name, non_field_attribute_name, set_attribute_value
-
-
-@dataclass
-class CustomDirectiveMeta:
-    allow_all_directive_locations: bool
-    add_definition_to_schema: bool
-    has_no_argument: bool
-    valid_types: set[GrapheneDirectiveLocation]
-    non_field_types: set[GrapheneDirectiveLocation]
-    supports_field_types: bool
-    supports_non_field_types: bool
-    validator: Union[Callable[[GraphQLDirective, Any], bool], None]
 
 
 def CustomDirective(  # noqa

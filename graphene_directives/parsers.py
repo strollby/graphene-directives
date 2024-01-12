@@ -1,5 +1,5 @@
 import re
-from typing import Union
+from typing import Collection, Union
 
 from graphene.utils.str_converters import to_camel_case
 from graphql import (
@@ -15,6 +15,8 @@ from graphql.utilities.print_schema import (
     print_fields,
     print_input_object,
 )
+
+from .data_models import SchemaDirective
 
 
 def _remove_block(str_fields: str) -> str:
@@ -62,3 +64,23 @@ def decorator_string(directive: GraphQLDirective, **kwargs: dict) -> str:
 
     # Construct the directive string
     return f"{directive_name}({', '.join(formatted_args)})"
+
+
+def extend_schema_string(
+    string_schema: str, schema_directives: Collection[SchemaDirective]
+) -> str:
+    schema_directives_strings = []
+    for schema_directive in schema_directives:
+        schema_directives_strings.append(
+            "\t"
+            + decorator_string(
+                schema_directive.target_directive, **schema_directive.arguments
+            )
+        )
+
+    if len(schema_directives_strings) != 0:
+        string_schema += (
+            "extend schema\n" + "\n".join(schema_directives_strings) + "\n\n"
+        )
+
+    return string_schema
