@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Union
 
-from graphql import DirectiveLocation as GrapheneDirectiveLocation, GraphQLDirective
+from graphql import DirectiveLocation as GrapheneDirectiveLocation
 
 
 @dataclass
@@ -13,4 +13,5 @@ class CustomDirectiveMeta:
     non_field_types: set[GrapheneDirectiveLocation]
     supports_field_types: bool
     supports_non_field_types: bool
-    validator: Union[Callable[[GraphQLDirective, Any], bool], None]
+    non_field_validator: Union[Callable[[Any, dict[str, Any]], bool], None]
+    field_validator: Union[Callable[[Any, Any, dict[str, Any]], bool], None]

@@ -28,6 +28,7 @@ from graphql.utilities.print_schema import (
     print_input_value,
 )
 
+from . import DirectiveCustomValidationError
 from .data_models import SchemaDirective
 from .directive import CustomDirectiveMeta
 from .exceptions import DirectiveValidationError
@@ -243,22 +244,43 @@ class Schema(GrapheneSchema):
                     continue
 
                 for directive in self.directives:
-                    if has_field_attribute(field, directive):
-                        directive_values = get_field_attribute_value(field, directive)
-                        if required_directive_field_types in set(directive.locations):
-                            raise DirectiveValidationError(
+                    if not has_field_attribute(field, directive):
+                        continue
+                    directive_values = get_field_attribute_value(field, directive)
+
+                    meta_data: CustomDirectiveMeta = getattr(
+                        directive, "_graphene_directive"
+                    )
+                    field_validator = meta_data.field_validator
+
+                    if required_directive_field_types in set(directive.locations):
+                        raise DirectiveValidationError(
+                            ", ".join(
+                                [
+                                    f"{str(directive)} cannot be used at field level",
+                                    allowed_locations,
+                                    f"at {entity_name}",
+                                ]
+                            )
+                        )
+                    for directive_value in directive_values:
+                        if field_validator is not None and not field_validator(
+                            entity_type,
+                            field,
+                            {to_snake_case(k): v for k, v in directive_value.items()},
+                        ):
+                            raise DirectiveCustomValidationError(
                                 ", ".join(
                                     [
-                                        f"{str(directive)} cannot be used at field level",
-                                        allowed_locations,
-                                        f"at {entity_name}",
+                                        f"Custom Validation Failed for {str(directive)} with args: ({directive_value})"
+                                        f"at field level {entity_name}:{field}"
                                     ]
                                 )
                             )
-                        for directive_value in directive_values:
-                            str_field += (
-                                f" {decorator_string(directive, **directive_value)}"
-                            )
+
+                        str_field += (
+                            f" {decorator_string(directive, **directive_value)}"
+                        )
 
                 str_fields.append(str_field)
 
@@ -383,7 +405,8 @@ class Schema(GrapheneSchema):
 
             for field in fields:
                 field_type = (
-                    getattr(entity_type.graphene_type, field, None)
+                    getattr(entity_type.graphene_type, to_camel_case(field), None)
+                    or getattr(entity_type.graphene_type, to_snake_case(field), None)
                     if not is_enum_type(entity_type)
                     else field.value
                 )

@@ -1,3 +1,5 @@
+from typing import Any
+
 # Graphene Directives
 Schema Directives implementation for graphene
 
@@ -144,16 +146,15 @@ schema = build_schema(
 import graphene
 from graphql import (
     GraphQLArgument,
-    GraphQLDirective,
     GraphQLInt,
     GraphQLNonNull,
     GraphQLString,
 )
 
-from graphene_directives import CustomDirective, DirectiveLocation, build_schema, directive_decorator
+from graphene_directives import CustomDirective, DirectiveLocation, ValidatorLocation, build_schema, directive_decorator
 
 
-def validate_input(_directive: GraphQLDirective, inputs: dict) -> bool:
+def validate_input(_type: Any, _location_type: ValidatorLocation, inputs: dict) -> bool:
     if inputs.get("max_age") > 2500:
         return False
     return True
@@ -175,7 +176,7 @@ CacheDirective = CustomDirective(
         ),
     },
     description="Caching directive to control cache behavior of fields or fragments.",
-    validator=validate_input,
+    non_field_validator=validate_input,
 )
 
 # This returns a partial of directive function
