@@ -20,3 +20,8 @@ class DirectiveInvalidTypeError(Exception):
 class DirectiveInvalidArgTypeError(Exception):
     def __init__(self, message: str):
         super().__init__(message)
+
+
+class DirectiveInvalidArgValueTypeError(Exception):
+    def __init__(self, errors: list[str]):
+        super().__init__("\n".join(errors))

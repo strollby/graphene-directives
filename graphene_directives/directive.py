@@ -2,7 +2,7 @@ from functools import partial
 from typing import Any, Callable, Collection, Dict, Optional
 
 from graphene.utils.str_converters import to_camel_case
-from graphql import GraphQLArgument, GraphQLDirective, GraphQLNonNull
+from graphql import GraphQLArgument, GraphQLDirective
 from graphql.language import ast
 
 from .constants import ACCEPTED_TYPES, FIELD_TYPES, LOCATION_NON_FIELD_VALIDATOR
@@ -14,6 +14,7 @@ from .exceptions import (
     DirectiveInvalidTypeError,
     DirectiveValidationError,
 )
+from .parsers import parse_argument_values
 from .utils import field_attribute_name, non_field_attribute_name, set_attribute_value
 
 
@@ -149,13 +150,7 @@ def directive(
     directive_name = str(target_directive)
     custom_validator = meta_data.validator
 
-    for arg_name, arg in target_directive.args.items():
-        data = kwargs.get(arg_name)
-        if data is None and isinstance(arg.type, GraphQLNonNull):
-            raise DirectiveValidationError(
-                f'Argument "{arg_name}" is required for {directive_name}'
-            )
-
+    kwargs = parse_argument_values(target_directive, kwargs)
     if custom_validator is not None and not custom_validator(target_directive, _kwargs):
         raise DirectiveCustomValidationError(
             f"Custom Validation Failed for {directive_name} with args: ({kwargs})"

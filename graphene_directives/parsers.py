@@ -1,14 +1,20 @@
 import re
-from typing import Collection, Union
+from typing import Any, Collection, Dict, Union, cast
 
-from graphene.utils.str_converters import to_camel_case
+from graphene.utils.str_converters import to_camel_case, to_snake_case
 from graphql import (
     GraphQLDirective,
     GraphQLEnumType,
+    GraphQLError,
     GraphQLInputObjectType,
+    GraphQLInputType,
     GraphQLInterfaceType,
     GraphQLObjectType,
+    is_non_null_type,
+    value_from_ast,
 )
+from graphql.pyutils import inspect, print_path_list
+from graphql.utilities import coerce_input_value
 from graphql.utilities.print_schema import (
     print_description,
     print_enum,
@@ -17,6 +23,7 @@ from graphql.utilities.print_schema import (
 )
 
 from .data_models import SchemaDirective
+from .exceptions import DirectiveInvalidArgValueTypeError
 
 
 def _remove_block(str_fields: str) -> str:
@@ -84,3 +91,57 @@ def extend_schema_string(
         )
 
     return string_schema
+
+
+def parse_argument_values(
+    directive: GraphQLDirective, inputs: Dict[str, Any]
+) -> dict[str, Any]:
+    coerced_values: Dict[str, Any] = {}
+    errors = []
+
+    for var_name, var_arg_type in directive.args.items():
+        var_type = var_arg_type.type
+        snake_cased_var_name = to_snake_case(var_name)
+
+        var_type = cast(GraphQLInputType, var_type)
+        if var_name not in inputs:
+            if var_arg_type.default_value:
+                coerced_values[var_name] = value_from_ast(
+                    var_arg_type.default_value, var_type
+                )
+            elif is_non_null_type(var_type):
+                var_type_str = inspect(var_type)
+                errors.append(
+                    f"Variable '{snake_cased_var_name}' of required type '{var_type_str}'"
+                    " was not provided."
+                )
+            continue
+
+        value = inputs[var_name]
+        if value is None and is_non_null_type(var_type):
+            var_type_str = inspect(var_type)
+            errors.append(
+                f"Variable '{snake_cased_var_name}' of non-null type '{var_type_str}'"
+                " must not be null."
+            )
+            continue
+
+        def on_input_value_error(
+            path: list[Union[str, int]], invalid_value: Any, error: GraphQLError
+        ) -> None:
+            invalid_str = inspect(invalid_value)
+            prefix = (
+                f"Variable '{snake_cased_var_name}' got invalid value {invalid_str}"
+            )
+            if path:
+                prefix += f" at '{snake_cased_var_name}{print_path_list(path)}'"
+            errors.append(prefix + "; " + error.message)
+
+        coerced_values[var_name] = coerce_input_value(
+            value, var_type, on_input_value_error
+        )
+
+    if errors:
+        raise DirectiveInvalidArgValueTypeError(errors=errors)
+
+    return coerced_values
