@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "graphene-directives"
-version = "0.3.0"
+version = "0.3.1"
 packages = [{include = "graphene_directives"}]
 description = "Schema Directives implementation for graphene"
 authors = ["Strollby <developers@strollby.com>"]
