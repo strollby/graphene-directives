@@ -56,7 +56,7 @@ class Schema(GrapheneSchema):
         auto_camelcase: bool = True,
     ):
         self.directives = directives or []
-        self._auto_camelcase = auto_camelcase
+        self.auto_camelcase = auto_camelcase
         super().__init__(
             query=query,
             mutation=mutation,
@@ -73,7 +73,7 @@ class Schema(GrapheneSchema):
         Create field name conversion method (from schema name to actual graphene_type attribute name).
         """
         field_names = {}
-        if self._auto_camelcase:
+        if self.auto_camelcase:
             field_names = {
                 to_camel_case(attr_name): attr_name
                 for attr_name in getattr(model._meta, "fields", [])  # noqa
@@ -86,7 +86,7 @@ class Schema(GrapheneSchema):
         """
         Create a conversion method to convert from graphene_type attribute name to the schema field name.
         """
-        if self._auto_camelcase:
+        if self.auto_camelcase:
             return lambda attr_name: to_camel_case(attr_name)
         return lambda attr_name: attr_name
 
