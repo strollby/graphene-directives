@@ -139,9 +139,9 @@ def test_non_repeatable_on_field() -> None:
                         required=True,
                         deprecation_reason="This field is deprecated and will be removed in future",
                     ),
-                    max_age=20,
+                    required=True,
                 ),
-                max_age=60,
+                required=False,
             )
 
     assert e_info.type == DirectiveValidationError

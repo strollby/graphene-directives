@@ -103,7 +103,7 @@ RepeatableDirective = CustomDirective(
     description="A repeatable directive.",
     args={
         "service_name": GraphQLArgument(
-            GraphQLNonNull(GraphQLBoolean), description="Service Name required"
+            GraphQLNonNull(GraphQLString), description="Service Name required"
         )
     },
     is_repeatable=True,
