@@ -28,12 +28,14 @@ from graphql.utilities.print_schema import (
     print_input_value,
 )
 
+from .data_models import SchemaDirective
 from .directive import CustomDirectiveMeta
 from .exceptions import DirectiveValidationError
 from .parsers import (
     decorator_string,
     entity_type_to_fields_string,
     enum_type_to_fields_string,
+    extend_schema_string,
     input_type_to_fields_string,
 )
 from .utils import (
@@ -54,9 +56,12 @@ class Schema(GrapheneSchema):
         types: list[graphene.ObjectType] = None,
         directives: Union[Collection[GraphQLDirective], None] = None,
         auto_camelcase: bool = True,
+        schema_directives: Collection[SchemaDirective] = None,
     ):
         self.directives = directives or []
+        self.schema_directives = schema_directives or []
         self.auto_camelcase = auto_camelcase
+        self.schema_directives = schema_directives or []
         super().__init__(
             query=query,
             mutation=mutation,
@@ -406,7 +411,10 @@ class Schema(GrapheneSchema):
         return directives_fields
 
     def __str__(self):
-        string_schema = print_schema(self.graphql_schema)
+        string_schema = ""
+        string_schema += extend_schema_string(string_schema, self.schema_directives)
+
+        string_schema += print_schema(self.graphql_schema)
         regex = r"schema \{(\w|\!|\s|\:)*\}"
         pattern = re.compile(regex)
         string_schema = pattern.sub(" ", string_schema)

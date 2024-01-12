@@ -1,3 +1,8 @@
+extend schema
+	@compose(directiveName: "lowercase")
+	@compose(directiveName: "uppercase")
+	@compose(directiveName: "pascalcase")
+
 """Caching directive to control cache behavior of fields or fragments."""
 directive @cache(
   """Specifies the maximum age for cache in seconds."""

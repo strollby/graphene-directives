@@ -13,6 +13,7 @@ from graphql import (
 from graphene_directives import (
     CustomDirective,
     DirectiveLocation,
+    SchemaDirective,
     build_schema,
     directive,
 )
@@ -103,6 +104,19 @@ RepeatableDirective = CustomDirective(
     args={
         "service_name": GraphQLArgument(
             GraphQLNonNull(GraphQLBoolean), description="Service Name required"
+        )
+    },
+    is_repeatable=True,
+)
+
+# A Schema directive
+ComposeDirective = CustomDirective(
+    name="compose",
+    locations=[DirectiveLocation.SCHEMA],
+    description="A schema directive.",
+    args={
+        "directive_name": GraphQLArgument(
+            GraphQLNonNull(GraphQLString), description="Directive Name required"
         )
     },
     is_repeatable=True,
@@ -256,6 +270,18 @@ schema = build_schema(
         InternalDirective,
         KeyDirective,
         RepeatableDirective,
+    ),
+    schema_directives=(  # extend schema directives
+        SchemaDirective(
+            target_directive=ComposeDirective, arguments={"directive_name": "lowercase"}
+        ),
+        SchemaDirective(
+            target_directive=ComposeDirective, arguments={"directive_name": "uppercase"}
+        ),
+        SchemaDirective(
+            target_directive=ComposeDirective,
+            arguments={"directive_name": "pascalcase"},
+        ),
     ),
 )
 

@@ -13,6 +13,7 @@ from graphql import (
 from graphene_directives import (
     CustomDirective,
     DirectiveLocation,
+    SchemaDirective,
     build_schema,
     directive,
 )
@@ -84,11 +85,30 @@ HiddenDirective = CustomDirective(
 )
 
 
-# No argument directive
+# No Schema  directive
 LinkDirective = CustomDirective(
     name="link",
     locations=[DirectiveLocation.SCHEMA],
     description="Schema directive to link files",
+    args={
+        "url": GraphQLArgument(
+            GraphQLNonNull(GraphQLString), description="Url required"
+        )
+    },
+)
+
+
+# A Schema directive
+ComposeDirective = CustomDirective(
+    name="compose",
+    locations=[DirectiveLocation.SCHEMA],
+    description="A schema directive.",
+    args={
+        "directive_name": GraphQLArgument(
+            GraphQLNonNull(GraphQLString), description="Directive Name required"
+        )
+    },
+    is_repeatable=True,
 )
 
 
@@ -220,6 +240,21 @@ schema = build_schema(
     query=Query,
     types=(SearchResult, Animal, Admin, HumanInput, TruthEnum, DateNewScalar, User),
     directives=(CacheDirective, AuthenticatedDirective, HiddenDirective, LinkDirective),
+    schema_directives=(  # extend schema directives
+        SchemaDirective(
+            target_directive=LinkDirective,
+            arguments={"url": "https://spec.graphql.org/v1.0"},
+        ),
+        SchemaDirective(
+            target_directive=ComposeDirective, arguments={"directive_name": "lowercase"}
+        ),
+        SchemaDirective(
+            target_directive=ComposeDirective, arguments={"directive_name": "uppercase"}
+        ),
+        SchemaDirective(
+            target_directive=ComposeDirective, arguments={"directive_name": "lowercase"}
+        ),
+    ),
 )
 
 
