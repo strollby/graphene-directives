@@ -1,30 +1,48 @@
 import re
-from typing import Any, Callable, Collection, Union
+from typing import Callable, Collection, Union
 
 import graphene
 from graphene import Schema as GrapheneSchema
-from graphene.types.enum import EnumOptions
 from graphene.types.scalars import ScalarOptions
 from graphene.types.union import UnionOptions
-from graphene.utils.str_converters import to_camel_case
+from graphene.utils.str_converters import to_camel_case, to_snake_case
 from graphql import (
     DirectiveLocation,
+    GraphQLArgument,
     GraphQLDirective,
-    GraphQLInterfaceType,
-    GraphQLObjectType,
+    GraphQLField,
+    GraphQLInputField,
+    GraphQLNamedType,
+    is_enum_type,
+    is_input_type,
+    is_interface_type,
+    is_object_type,
+    is_scalar_type,
+    is_union_type,
     print_schema,
 )
-from graphql.utilities.print_schema import print_fields  # noqa
+from graphql.utilities.print_schema import (
+    print_args,
+    print_description,
+    print_directive,
+    print_input_value,
+)
 
-
-class MonoFieldType:
-    """
-    In order to be able to reuse the `print_fields` method to get a singular field
-    string definition, we need to define an object that has a `.fields` attribute.
-    """
-
-    def __init__(self, name, field) -> None:  # noqa
-        self.fields = {name: field}
+from .directive import CustomDirectiveMeta
+from .exceptions import DirectiveValidationError
+from .parsers import (
+    decorator_string,
+    entity_type_to_fields_string,
+    enum_type_to_fields_string,
+    input_type_to_fields_string,
+)
+from .utils import (
+    get_field_attribute_value,
+    get_non_field_attribute_value,
+    get_single_field_type,
+    has_field_attribute,
+    has_non_field_attribute,
+)
 
 
 class Schema(GrapheneSchema):
@@ -38,6 +56,7 @@ class Schema(GrapheneSchema):
         auto_camelcase: bool = True,
     ):
         self.directives = directives or []
+        self._auto_camelcase = auto_camelcase
         super().__init__(
             query=query,
             mutation=mutation,
@@ -47,23 +66,6 @@ class Schema(GrapheneSchema):
             auto_camelcase=auto_camelcase,
         )
 
-    def decorator_resolver(self, directive, **kwargs):  # noqa
-        # Extract directive name
-        directive_name = directive.name
-
-        # Format each keyword argument as a string, considering its type
-        formatted_args = [
-            (
-                f"{to_camel_case(key)}: "
-                + (f'"{value}"' if isinstance(value, str) else str(value))
-            )
-            for key, value in kwargs.items()
-            if value is not None and to_camel_case(key) in directive.args
-        ]
-
-        # Construct the directive string
-        return f"@{directive_name}({', '.join(formatted_args)})"
-
     def field_name_to_type_attribute(
         self, model: graphene.ObjectType
     ) -> Callable[[str], str]:
@@ -71,7 +73,7 @@ class Schema(GrapheneSchema):
         Create field name conversion method (from schema name to actual graphene_type attribute name).
         """
         field_names = {}
-        if self.auto_camelcase:
+        if self._auto_camelcase:
             field_names = {
                 to_camel_case(attr_name): attr_name
                 for attr_name in getattr(model._meta, "fields", [])  # noqa
@@ -84,7 +86,7 @@ class Schema(GrapheneSchema):
         """
         Create a conversion method to convert from graphene_type attribute name to the schema field name.
         """
-        if self.auto_camelcase:
+        if self._auto_camelcase:
             return lambda attr_name: to_camel_case(attr_name)
         return lambda attr_name: attr_name
 
@@ -92,127 +94,315 @@ class Schema(GrapheneSchema):
         get_field_name = self.type_attribute_to_field_name()
         return " ".join([get_field_name(field) for field in fields])
 
-    @staticmethod
-    def field_to_string(field: Union[GraphQLObjectType, GraphQLInterfaceType]) -> str:
-        str_field = print_fields(field)
-        # Remove blocks added by `print_block`
-        block_match = re.match(
-            r" \{\n(?P<field_str>.*)\n\}",
-            str_field,
-            flags=re.DOTALL,  # noqa
-        )
-        if block_match:
-            str_field = block_match.groups()[0]
+    def add_argument_decorators(
+        self,
+        entity_name: str,
+        allowed_locations: list[str],
+        required_directive_field_types: set[DirectiveLocation],
+        args: dict[str, GraphQLArgument],
+    ) -> str:
+        if not args:
+            return ""
+
+        # If every arg does not have a description, print them on one line.
+        print_single_line = not any(arg.description for arg in args.values())
+        indentation: str = "  "
+        new_args = []
+
+        str_field = "(" if print_single_line else "(\n"
+
+        for i, (name, arg) in enumerate(args.items()):
+            if print_single_line:
+                base_str = f"{print_input_value(name, arg)} "
+            else:
+                base_str = (
+                    print_description(arg, f"  {indentation}", not i)
+                    + f"  {indentation}"
+                    + f"{print_input_value(name, arg)} "
+                )
+            directives = []
+            for directive in self.directives:
+                if has_field_attribute(arg, directive):
+                    directive_values = get_field_attribute_value(arg, directive)
+                    if required_directive_field_types in set(directive.locations):
+                        raise DirectiveValidationError(
+                            ", ".join(
+                                [
+                                    f"{str(directive)} cannot be used at argument {name} level",
+                                    allowed_locations,
+                                    f"at {entity_name}",
+                                ]
+                            )
+                        )
+                    for directive_value in directive_values:
+                        directive_str = decorator_string(directive, **directive_value)
+                        directives.append(directive_str)
+
+            new_args.append(base_str + " ".join(directives))
+
+        if print_single_line:
+            str_field += ", ".join(new_args) + ")"
+        else:
+            str_field += "\n".join(new_args) + f"\n{indentation})"
+
         return str_field
 
-    def add_type_fields_decorators(self, types_: set, string_schema: str) -> str:
+    def add_field_decorators(self, graphene_types: set, string_schema: str) -> str:
         """
-        For a given entity, go through all its fields and see if any directive decorator need to be added.
-        The methods (from graphene-federation) marking fields that require some special treatment for federation add
-        corresponding attributes to the field itself.
-        Those attributes are listed in the `DECORATORS` variable as key and their respective value is the resolver that
-        returns what needs to be amended to the field declaration.
+        For a given entity, go through all its fields and see if any directive decorator needs to be added.
 
-        This method simply go through the fields that need to be modified and replace them with their annotated
+        This method simply goes through the fields that need to be modified and replace them with their annotated
         version in the schema string representation.
         """
-        for type_ in types_:
-            entity_name = type_._meta.name  # noqa
+
+        for graphene_type in graphene_types:
+            entity_name = graphene_type._meta.name  # noqa
+
             entity_type = self.graphql_schema.get_type(entity_name)
-            str_fields = []
-            get_model_attr = self.field_name_to_type_attribute(type_)
-            for field_name, field in (
-                entity_type.fields.items()
-                if getattr(entity_type, "fields", None)
-                else []
-            ):
-                str_field = self.field_to_string(MonoFieldType(field_name, field))  # noqa
-                # Check if we need to annotate the field by checking if it has the decorator attribute set on the field.
-                f = getattr(type_, get_model_attr(field_name), None)
-                if f is not None:
-                    for directive in self.directives:
-                        decorator_value = getattr(f, f"_{directive.name}", None)
-                        if decorator_value:
-                            if DirectiveLocation.FIELD not in directive.locations:
-                                raise ValueError("Directive not supported on fields")
-                            str_field += f" {self.decorator_resolver(directive, **decorator_value)}"
-                str_fields.append(str_field)
-            str_fields_annotated = "\n".join(str_fields)
-            # Replace the original field declaration by the annotated one
-            if isinstance(entity_type, GraphQLObjectType) or isinstance(  # noqa
-                entity_type, GraphQLInterfaceType
-            ):
-                str_fields_original = self.field_to_string(entity_type)
+            get_field_graphene_type = self.field_name_to_type_attribute(graphene_type)
+
+            required_directive_field_types = set()
+
+            if is_object_type(entity_type) or is_interface_type(entity_type):
+                required_directive_field_types.union(
+                    {
+                        DirectiveLocation.FIELD_DEFINITION,
+                        DirectiveLocation.ARGUMENT_DEFINITION,
+                    }
+                )
+            elif is_enum_type(entity_type):
+                required_directive_field_types.add(DirectiveLocation.ENUM_VALUE)
+            elif is_input_type(entity_type):
+                required_directive_field_types.add(
+                    DirectiveLocation.INPUT_FIELD_DEFINITION
+                )
             else:
-                str_fields_original = ""
+                continue
+
+            if is_enum_type(entity_type):
+                fields: dict = entity_type.values
+            else:
+                fields: dict = entity_type.fields
+
+            str_fields = []
+            allowed_locations = [str(t) for t in required_directive_field_types]
+
+            for field_name, field in fields.items():
+                if is_enum_type(entity_type):
+                    str_field = enum_type_to_fields_string(
+                        get_single_field_type(
+                            entity_type, field_name, field, is_enum_type=True
+                        )
+                    )
+                elif isinstance(field, GraphQLInputField):
+                    str_field = input_type_to_fields_string(
+                        get_single_field_type(entity_type, field_name, field)
+                    )
+                elif isinstance(field, GraphQLField):
+                    str_field = entity_type_to_fields_string(
+                        get_single_field_type(entity_type, field_name, field)
+                    )
+
+                    # Replace Arguments with directives
+                    if hasattr(entity_type, "_fields"):
+                        arg_field = getattr(
+                            entity_type._fields.args[0],  # noqa
+                            to_snake_case(field_name),
+                        )
+
+                        if (
+                            hasattr(arg_field, "args")
+                            and arg_field.args is not None
+                            and isinstance(arg_field.args, dict)
+                        ):
+                            original_args = print_args(
+                                args=field.args, indentation="  "
+                            )
+                            replacement_args = self.add_argument_decorators(
+                                entity_name=entity_name,
+                                allowed_locations=allowed_locations,
+                                required_directive_field_types=required_directive_field_types,
+                                args=arg_field.args,
+                            )
+                            str_field = str_field.replace(
+                                original_args, replacement_args
+                            )
+                else:
+                    continue
+
+                # Check if we need to annotate the field by checking if it has the decorator attribute set on the field.
+                field = getattr(
+                    graphene_type, get_field_graphene_type(field_name), None
+                )
+                if field is None:
+                    continue
+
+                for directive in self.directives:
+                    if has_field_attribute(field, directive):
+                        directive_values = get_field_attribute_value(field, directive)
+                        if required_directive_field_types in set(directive.locations):
+                            raise DirectiveValidationError(
+                                ", ".join(
+                                    [
+                                        f"{str(directive)} cannot be used at field level",
+                                        allowed_locations,
+                                        f"at {entity_name}",
+                                    ]
+                                )
+                            )
+                        for directive_value in directive_values:
+                            str_field += (
+                                f" {decorator_string(directive, **directive_value)}"
+                            )
+
+                str_fields.append(str_field)
+
+            str_fields_annotated = "\n".join(str_fields)
+
+            # Replace the original field declaration by the annotated one
+            if is_object_type(entity_type):
+                entity_type_name = "type"
+                str_fields_original = entity_type_to_fields_string(entity_type)
+            elif is_interface_type(entity_type):
+                entity_type_name = "interface"
+                str_fields_original = entity_type_to_fields_string(entity_type)
+            elif is_enum_type(entity_type):
+                entity_type_name = "enum"
+                str_fields_original = enum_type_to_fields_string(entity_type)
+            elif is_input_type(entity_type):
+                entity_type_name = "input"
+                str_fields_original = input_type_to_fields_string(entity_type)
+            else:
+                continue
+
             pattern = re.compile(
-                r"(type\s%s\s[^\{]*)\{\s*%s\s*\}"  # noqa
-                % (entity_name, re.escape(str_fields_original))
+                r"(%s\s%s\s[^\{]*)\{\s*%s\s*\}"  # noqa
+                % (entity_type_name, entity_name, re.escape(str_fields_original))
             )
             string_schema = pattern.sub(
                 r"\g<1> {\n%s\n}" % str_fields_annotated, string_schema
             )
         return string_schema
 
-    def add_type_decorators(self, types_: set, string_schema: str) -> str:
-        for type_ in types_:
-            # noinspection PyProtectedMember
-            if isinstance(type_._meta, UnionOptions):
-                type_def_re = rf"(union {type_._meta.name} )"  # noqa
-            else:
-                type_def_re = rf"(type {type_._meta.name} [^\{{]*)"  # noqa
-            type_annotation = ""
-            for directive in self.directives:
-                decorator_value = getattr(type_, f"_{directive.name}", None)
-                if decorator_value:
-                    if DirectiveLocation.OBJECT not in directive.locations:
-                        raise ValueError("Directive not supported on fragments")
-                    type_annotation += (
-                        f"{self.decorator_resolver(directive, **decorator_value)}"
-                    )
+    def add_non_field_decorators(
+        self, non_fields_type: set[GraphQLNamedType], string_schema: str
+    ) -> str:
+        for non_field in non_fields_type:
+            entity_name = non_field._meta.name  # noqa
+            entity_type = self.graphql_schema.get_type(entity_name)
 
-            repl_str = rf"\1{type_annotation} "
-            pattern = re.compile(type_def_re)
-            string_schema = pattern.sub(repl_str, string_schema)
+            if is_scalar_type(entity_type):
+                non_field_pattern = rf"(scalar {entity_name})"
+            elif is_union_type(entity_type):
+                non_field_pattern = rf"(union {entity_name} )"
+            elif is_object_type(entity_type):
+                non_field_pattern = rf"(type {entity_name} [^\{{]*)"
+            elif is_interface_type(entity_type):
+                non_field_pattern = rf"(interface {entity_name} [^\{{]*)"
+            elif is_enum_type(entity_type):
+                non_field_pattern = rf"(enum {entity_name} [^\{{]*)"
+            elif is_input_type(entity_type):
+                non_field_pattern = rf"(input {entity_name} [^\{{]*)"
+            else:
+                continue
+
+            directive_annotations = []
+            for directive in self.directives:
+                if has_non_field_attribute(non_field, directive):
+                    directive_values = get_non_field_attribute_value(
+                        non_field, directive
+                    )
+                    for directive_value in directive_values:
+                        directive_annotations.append(
+                            f"{decorator_string(directive, **directive_value)}"
+                        )
+
+            annotation = " ".join(directive_annotations)
+            annotation = (
+                f" {annotation}" if is_scalar_type(entity_type) else f"{annotation} "
+            )
+            replace_str = rf"\1{annotation}"
+            pattern = re.compile(non_field_pattern)
+            string_schema = pattern.sub(replace_str, string_schema)
+
         return string_schema
 
-    def get_directive_types(self) -> set:
+    def get_directive_applied_non_field_types(self) -> set:
         """
         Find all the extended types from the schema.
         They can be easily distinguished from the other type as
         the `@directive` decorator adds a `_{name}` attribute to them.
         """
         directives_types = set()
-        for type_name, type_ in self.graphql_schema.type_map.items():
-            if not hasattr(type_, "graphene_type"):
+        schema_types = {
+            **self.graphql_schema.type_map,
+            **{
+                "Query": self.graphql_schema.query_type,
+                "Mutation": self.graphql_schema.mutation_type,
+            },
+        }
+
+        for schema_type in schema_types.values():
+            if not hasattr(schema_type, "graphene_type"):
                 continue
-            for directive_ in self.directives:
-                if getattr(
-                    type_.graphene_type,
-                    f"_{directive_.name}",
-                    False,  # noqa
-                ):
-                    directives_types.add(type_.graphene_type)
+            for directive in self.directives:
+                if has_non_field_attribute(schema_type.graphene_type, directive):
+                    directives_types.add(schema_type.graphene_type)
         return directives_types
 
-    def get_directive_fields(self) -> set[Any]:
+    def get_directive_applied_field_types(self) -> set:
         directives_fields = set()
-        for type_name, type_ in self.graphql_schema.type_map.items():
+        schema_types = {
+            **self.graphql_schema.type_map,
+            **{
+                "Query": self.graphql_schema.query_type,  # noqa
+                "Mutation": self.graphql_schema.mutation_type,  # noqa
+            },
+        }
+
+        for schema_type_name, schema_type in schema_types.items():
             if (
-                not hasattr(type_, "graphene_type")  # noqa
-                or isinstance(type_.graphene_type._meta, UnionOptions)  # noqa
-                or isinstance(type_.graphene_type._meta, ScalarOptions)  # noqa
-                or isinstance(type_.graphene_type._meta, EnumOptions)  # noqa
+                not hasattr(schema_type, "graphene_type")  # noqa:SIM101
+                or isinstance(schema_type.graphene_type._meta, UnionOptions)  # noqa
+                or isinstance(schema_type.graphene_type._meta, ScalarOptions)  # noqa
             ):
                 continue
-            for directive_ in self.directives:
-                for field in list(type_.graphene_type._meta.fields):  # noqa
-                    if getattr(
-                        getattr(type_.graphene_type, field, None),
-                        f"_{directive_.name}",
-                        False,
+
+            entity_type = self.graphql_schema.get_type(schema_type_name)
+
+            fields = (
+                list(entity_type.values.values())  # Enum class fields
+                if is_enum_type(entity_type)
+                else list(entity_type.fields)  # noqa
+            )
+
+            for field in fields:
+                field_type = (
+                    getattr(entity_type.graphene_type, field, None)
+                    if not is_enum_type(entity_type)
+                    else field.value
+                )
+                for directive_ in self.directives:
+                    if has_field_attribute(field_type, directive_):
+                        directives_fields.add(entity_type.graphene_type)
+
+                    # Handle Argument Decorators
+                    if (
+                        hasattr(field_type, "args")
+                        and field_type.args is not None
+                        and isinstance(field_type.args, dict)
                     ):
-                        directives_fields.add(type_.graphene_type)
+                        for arg_name, arg_type in field_type.args.items():
+                            if has_field_attribute(arg_type, directive_):
+                                if (
+                                    DirectiveLocation.ARGUMENT_DEFINITION
+                                    not in directive_.locations
+                                ):
+                                    raise DirectiveValidationError(
+                                        f"{directive_} cannot be used at argument level at {entity_type}->{field}"
+                                    )
+                                directives_fields.add(entity_type.graphene_type)
+
         return directives_fields
 
     def __str__(self):
@@ -221,7 +411,17 @@ class Schema(GrapheneSchema):
         pattern = re.compile(regex)
         string_schema = pattern.sub(" ", string_schema)
 
-        string_schema = self.add_type_fields_decorators(
-            self.get_directive_fields(), string_schema
-        )
-        return self.add_type_decorators(self.get_directive_types(), string_schema)
+        field_types = self.get_directive_applied_field_types()
+        non_field_types = self.get_directive_applied_non_field_types()
+
+        string_schema = self.add_field_decorators(field_types, string_schema)
+        string_schema = self.add_non_field_decorators(non_field_types, string_schema)
+
+        for directive in self.directives:
+            meta_data: CustomDirectiveMeta = getattr(directive, "_graphene_directive")
+            if not meta_data.add_definition_to_schema:
+                string_schema = string_schema.replace(
+                    print_directive(directive) + "\n\n", ""
+                )
+
+        return string_schema.strip()

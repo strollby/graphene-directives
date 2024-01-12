@@ -1,5 +1,16 @@
-from .directive import directive
+from .constants import DirectiveLocation
+from .directive import ACCEPTED_TYPES
+from .directive import CustomDirective, directive, directive_decorator
+from .exceptions import DirectiveCustomValidationError, DirectiveValidationError
 from .main import build_schema
-from .utils import build_decorator_from_directive
 
-__all__ = ["build_schema", "build_decorator_from_directive", "directive"]
+__all__ = [
+    "build_schema",
+    "CustomDirective",
+    "directive_decorator",
+    "directive",
+    "ACCEPTED_TYPES",
+    "DirectiveLocation",
+    "DirectiveCustomValidationError",
+    "DirectiveValidationError",
+]

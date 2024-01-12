@@ -1,0 +1,26 @@
+"""Caching directive to control cache behavior of fields or fragments."""
+directive @cache(
+  """Specifies the maximum age for cache in seconds."""
+  maxAge: Int!
+
+  """Stale-while-revalidate value in seconds. Optional."""
+  swr: Int
+
+  """Scope of the cache. Optional."""
+  scope: String
+) repeatable on OBJECT | INTERFACE | ENUM | UNION | INPUT_OBJECT | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | SCALAR
+
+"""Auth directive to control authorization behavior."""
+directive @authenticated(
+  """Auth required"""
+  required: Boolean!
+) on OBJECT | INTERFACE | ENUM | ENUM_VALUE | UNION | INPUT_OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION | SCALAR
+
+type Query {
+  animals: Animal @deprecated(reason: "Koo")
+}
+
+interface Animal  @cache(maxAge: 30) @cache(maxAge: 100) @authenticated(required: True) {
+  age: Int!
+  kind: Int! @deprecated(reason: "This field is deprecated and will be removed in future") @cache(maxAge: 20) @cache(maxAge: 60)
+}

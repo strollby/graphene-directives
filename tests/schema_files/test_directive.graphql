@@ -1,0 +1,85 @@
+"""Caching directive to control cache behavior of fields or fragments."""
+directive @cache(
+  """Specifies the maximum age for cache in seconds."""
+  maxAge: Int!
+
+  """Stale-while-revalidate value in seconds. Optional."""
+  swr: Int
+
+  """Scope of the cache. Optional."""
+  scope: String
+) on OBJECT | INTERFACE | ENUM | UNION | INPUT_OBJECT | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | SCALAR
+
+"""Auth directive to control authorization behavior."""
+directive @authenticated(
+  """Auth required"""
+  required: Boolean!
+) on OBJECT | INTERFACE | ENUM | ENUM_VALUE | UNION | INPUT_OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION | SCALAR
+
+"""Auth directive to control authorization behavior."""
+directive @hidden on OBJECT | ARGUMENT_DEFINITION
+
+"""Schema directive to link files"""
+directive @link on SCHEMA
+
+union SearchResult @cache(maxAge: 500) @authenticated(required: True) = Human | Droid | Starship
+
+type Human @cache(maxAge: 60) {
+  name: String
+  bornIn: String
+}
+
+type Droid  @cache(maxAge: 200) {
+  """Test Description"""
+  name: String @deprecated(reason: "Deprecated use born in") @cache(maxAge: 300)
+  primaryFunction: String
+}
+
+type Starship  @cache(maxAge: 20) {
+  name: String
+  length: Int @deprecated(reason: "Koo") @cache(maxAge: 60)
+}
+
+interface Animal  @cache(maxAge: 100) @authenticated(required: True) {
+  age: Int!
+  kind: Int! @cache(maxAge: 60)
+}
+
+type Admin  @authenticated(required: True) {
+  name: String
+  password: String
+  price(
+    currency: Int @deprecated(reason: "Use country") @hidden
+
+    """Country"""
+    country: Int @authenticated(required: True) @hidden
+  ): String
+}
+
+input HumanInput  @cache(maxAge: 60) @authenticated(required: True) {
+  bornIn: String
+  """Test Description"""
+  name: String @deprecated(reason: "Deprecated use born in") @cache(maxAge: 300)
+}
+
+enum TruthEnum  @cache(maxAge: 100) @authenticated(required: True) {
+  A @authenticated(required: True)
+  B
+}
+
+scalar DateNewScalar @cache(maxAge: 500) @authenticated(required: True)
+
+type User  @authenticated(required: True) {
+  name: String
+  password: String
+  price(currency: Int @hidden, country: Int @authenticated(required: True) @hidden): String
+}
+
+type Query {
+  position: Position @deprecated(reason: "Koo")
+}
+
+type Position  @cache(maxAge: 100) {
+  x: Int!
+  y: Int! @cache(maxAge: 60)
+}

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "graphene-directives"
-version = "0.2.1"
+version = "0.3.0"
 packages = [{include = "graphene_directives"}]
 description = "Schema Directives implementation for graphene"
 authors = ["Strollby <developers@strollby.com>"]
@@ -66,9 +66,9 @@ select = [
     "SIM", # flake8-simplify (SIM)
     "ARG", # flake8-unused-arguments (ARG)
     "ISC", # flake8-implicit-str-concat (ISC)
-    "ASYNC", # flake8-async (ASYNC)
 ]
 ignore = [
+    "ANN401", # Any
     "ANN101", # Missing type annotation for self in method
     "ANN102", # Missing type annotation for cls in classmethod
     "ANN204", # Missing return type annotation for special method `__init__`
@@ -81,17 +81,8 @@ indent-style = "space" # Like Black, indent with spaces, rather than tabs.
 skip-magic-trailing-comma = true
 line-ending = "auto" # Like Black, automatically detect the appropriate line ending.
 
-[tool.ruff.flake8-builtins]
-builtins-ignorelist = ["id", "type"] # ignore built in id and type (conflict with model and graphql)
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = [
     "F401", # imported but unused
-    "F403", # unable to detect undefined names (using *)
-    "E501", #Line too long (99 > 88)
 ]
-# F811 - "redefinition of unused variable"
-# F401 - "imported but unused"
-# F811, F401 are conflicting with tests with scenarios
-"*/tests/*" = ["F811", "F401"]
-"*/test_health/*" = ["F811", "F401"]

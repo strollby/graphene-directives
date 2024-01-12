@@ -6,7 +6,4 @@ from nox import parametrize, session
 def tests(session, graphene):  # noqa
     session.install(f"graphene=={graphene}")
     session.install("pytest", ".")
-    session.install("ruff", ".")
     session.run("pytest", "tests/")
-    session.run("ruff", "check", ".")
-    session.run("ruff", "format", "--diff", ".")
