@@ -211,10 +211,13 @@ class Schema(GrapheneSchema):
 
                     # Replace Arguments with directives
                     if hasattr(entity_type, "_fields"):
-                        arg_field = getattr(
-                            entity_type._fields.args[0],  # noqa
-                            to_snake_case(field_name),
-                        )
+                        _arg = entity_type._fields.args[0]  # noqa
+                        if hasattr(_arg, to_snake_case(field_name)):
+                            arg_field = getattr(_arg, to_snake_case(field_name))
+                        elif hasattr(_arg, to_camel_case(field_name)):
+                            arg_field = getattr(_arg, to_camel_case(field_name))
+                        else:
+                            arg_field = {}
 
                         if (
                             hasattr(arg_field, "args")
@@ -241,6 +244,8 @@ class Schema(GrapheneSchema):
                     graphene_type, get_field_graphene_type(field_name), None
                 )
                 if field is None:
+                    # Append the string, but skip the directives
+                    str_fields.append(str_field)
                     continue
 
                 for directive in self.directives:
