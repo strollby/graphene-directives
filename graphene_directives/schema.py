@@ -28,10 +28,9 @@ from graphql.utilities.print_schema import (
     print_input_value,
 )
 
-from . import DirectiveCustomValidationError
-from .data_models import SchemaDirective
+from .data_models.schema_directive import SchemaDirective
 from .directive import CustomDirectiveMeta
-from .exceptions import DirectiveValidationError
+from .exceptions import DirectiveCustomValidationError, DirectiveValidationError
 from .parsers import (
     decorator_string,
     entity_type_to_fields_string,
@@ -88,17 +87,13 @@ class Schema(GrapheneSchema):
             schema_field_name, schema_field_name
         )
 
-    def type_attribute_to_field_name(self) -> Callable[[str], str]:
+    def type_attribute_to_field_name(self, attribute: str) -> str:
         """
         Create a conversion method to convert from graphene_type attribute name to the schema field name.
         """
         if self.auto_camelcase:
-            return lambda attr_name: to_camel_case(attr_name)
-        return lambda attr_name: attr_name
-
-    def convert_fields(self, fields: list[str]) -> str:
-        get_field_name = self.type_attribute_to_field_name()
-        return " ".join([get_field_name(field) for field in fields])
+            return to_camel_case(attribute)
+        return attribute
 
     def add_argument_decorators(
         self,
@@ -212,10 +207,10 @@ class Schema(GrapheneSchema):
                     # Replace Arguments with directives
                     if hasattr(entity_type, "_fields"):
                         _arg = entity_type._fields.args[0]  # noqa
-                        if hasattr(_arg, to_snake_case(field_name)):
-                            arg_field = getattr(_arg, to_snake_case(field_name))
-                        elif hasattr(_arg, to_camel_case(field_name)):
-                            arg_field = getattr(_arg, to_camel_case(field_name))
+                        if hasattr(_arg, self.type_attribute_to_field_name(field_name)):
+                            arg_field = getattr(
+                                _arg, self.type_attribute_to_field_name(field_name)
+                            )
                         else:
                             arg_field = {}
 
@@ -273,6 +268,7 @@ class Schema(GrapheneSchema):
                             entity_type,
                             field,
                             {to_snake_case(k): v for k, v in directive_value.items()},
+                            self,
                         ):
                             raise DirectiveCustomValidationError(
                                 ", ".join(
@@ -341,10 +337,32 @@ class Schema(GrapheneSchema):
             directive_annotations = []
             for directive in self.directives:
                 if has_non_field_attribute(non_field, directive):
+                    meta_data: CustomDirectiveMeta = getattr(
+                        directive, "_graphene_directive"
+                    )
                     directive_values = get_non_field_attribute_value(
                         non_field, directive
                     )
                     for directive_value in directive_values:
+                        if (
+                            meta_data.non_field_validator is not None
+                            and not meta_data.non_field_validator(
+                                non_field,
+                                {
+                                    to_snake_case(k): v
+                                    for k, v in directive_value.items()
+                                },
+                                self,
+                            )
+                        ):
+                            raise DirectiveCustomValidationError(
+                                ", ".join(
+                                    [
+                                        f"Custom Validation Failed for {str(directive)} with args: ({directive_value})"
+                                        f"at non-field level {entity_name}"
+                                    ]
+                                )
+                            )
                         directive_annotations.append(
                             f"{decorator_string(directive, **directive_value)}"
                         )
@@ -410,8 +428,11 @@ class Schema(GrapheneSchema):
 
             for field in fields:
                 field_type = (
-                    getattr(entity_type.graphene_type, to_camel_case(field), None)
-                    or getattr(entity_type.graphene_type, to_snake_case(field), None)
+                    getattr(
+                        entity_type.graphene_type,
+                        self.type_attribute_to_field_name(field),
+                        None,
+                    )
                     if not is_enum_type(entity_type)
                     else field.value
                 )

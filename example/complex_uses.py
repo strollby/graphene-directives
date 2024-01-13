@@ -13,6 +13,7 @@ from graphql import (
 from graphene_directives import (
     CustomDirective,
     DirectiveLocation,
+    Schema,
     SchemaDirective,
     build_schema,
     directive,
@@ -21,9 +22,9 @@ from graphene_directives import (
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
 
-def validate_non_field_input(_type: Any, inputs: dict) -> bool:
+def validate_non_field_input(_type: Any, inputs: dict, _schema: Schema) -> bool:
     """
-    def validator (type_: graphene type, inputs: Any) -> bool,
+    def validator (type_: graphene type, inputs: Any, schema: Schema) -> bool,
     if validator returns False, library raises DirectiveCustomValidationError
     """
     if inputs.get("max_age") > 2500:
@@ -31,9 +32,11 @@ def validate_non_field_input(_type: Any, inputs: dict) -> bool:
     return True
 
 
-def validate_field_input(_parent_type: Any, _field_type: Any, inputs: dict) -> bool:
+def validate_field_input(
+    _parent_type: Any, _field_type: Any, inputs: dict, _schema: Schema
+) -> bool:
     """
-    def validator (parent_type_: graphene_type, field_type_: graphene type, inputs: Any) -> bool,
+    def validator (parent_type_: graphene_type, field_type_: graphene type, inputs: Any, schema: Schema) -> bool,
     if validator returns False, library raises DirectiveCustomValidationError
     """
     if inputs.get("max_age") > 2500:

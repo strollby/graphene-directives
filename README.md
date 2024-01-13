@@ -143,6 +143,8 @@ schema = build_schema(
 ### Custom Input Validation
 
 ```python
+from typing import Any
+
 import graphene
 from graphql import (
     GraphQLArgument,
@@ -151,12 +153,12 @@ from graphql import (
     GraphQLString,
 )
 
-from graphene_directives import CustomDirective, DirectiveLocation, ValidatorLocation, build_schema, directive_decorator
+from graphene_directives import CustomDirective, DirectiveLocation, Schema, build_schema, directive_decorator
 
 
-def validate_non_field_input(_type: Any, inputs: dict) -> bool:
+def validate_non_field_input(_type: Any, inputs: dict, _schema: Schema) -> bool:
     """
-    def validator (type_: graphene type, inputs: Any) -> bool,
+    def validator (type_: graphene type, inputs: Any, schema: Schema) -> bool,
     if validator returns False, library raises DirectiveCustomValidationError
     """
     if inputs.get("max_age") > 2500:
@@ -164,14 +166,17 @@ def validate_non_field_input(_type: Any, inputs: dict) -> bool:
     return True
 
 
-def validate_field_input(_parent_type: Any, _field_type: Any, inputs: dict) -> bool:
+def validate_field_input(
+        _parent_type: Any, _field_type: Any, inputs: dict, _schema: Schema
+) -> bool:
     """
-    def validator (parent_type_: graphene_type, field_type_: graphene type, inputs: Any) -> bool,
+    def validator (parent_type_: graphene_type, field_type_: graphene type, inputs: Any, schema: Schema) -> bool,
     if validator returns False, library raises DirectiveCustomValidationError
     """
     if inputs.get("max_age") > 2500:
         return False
     return True
+
 
 CacheDirective = CustomDirective(
     name="cache",
