@@ -1,0 +1,37 @@
+"""Caching directive to control cache behavior of fields or fragments."""
+directive @cache(
+  """Specifies the maximum age for cache in seconds."""
+  maxAge: Int!
+
+  """Stale-while-revalidate value in seconds. Optional."""
+  swr: Int
+
+  """Scope of the cache. Optional."""
+  scope: String
+) on FIELD_DEFINITION | OBJECT | UNION
+
+union SearchResult @cache(maxAge: 500, swr: 30) = Human | Droid | Starship
+
+type Human @cache(maxAge: 60) {
+  name: String
+  bornIn: String
+}
+
+type Droid  @cache(maxAge: 200) {
+  name: String @cache(maxAge: 300, swr: 30)
+  primaryFunction: String
+}
+
+type Starship  @cache(maxAge: 200) {
+  name: String
+  length: Int @deprecated(reason: "Koo") @cache(maxAge: 60)
+}
+
+type Query {
+  position: Position @deprecated(reason: "Koo")
+}
+
+type Position  @cache(maxAge: 500, swr: 30) {
+  x: Int!
+  y: Int! @cache(maxAge: 60)
+}

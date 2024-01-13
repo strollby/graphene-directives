@@ -150,3 +150,11 @@ def parse_argument_values(
         raise DirectiveInvalidArgValueTypeError(errors=errors)
 
     return coerced_values
+
+
+def arg_camel_case(inputs: dict) -> dict:
+    return {to_camel_case(k): v for k, v in inputs.items()}
+
+
+def arg_snake_case(inputs: dict) -> dict:
+    return {to_snake_case(k): v for k, v in inputs.items()}

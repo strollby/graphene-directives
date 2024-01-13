@@ -29,6 +29,7 @@ def CustomDirective(  # noqa
     add_definition_to_schema: bool = True,
     non_field_validator: Callable[[Any, dict[str, Any], Any], bool] = None,
     field_validator: Callable[[Any, Any, dict[str, Any], Any], bool] = None,
+    input_transform: Callable[[dict[str, Any], Any], dict[str, Any]] = None,
 ) -> GraphQLDirective:
     """
     Creates a GraphQLDirective
@@ -43,13 +44,15 @@ def CustomDirective(  # noqa
     :param locations: list[DirectiveLocation], if need to use unsupported locations, set allow_all_directive_locations True
     :param allow_all_directive_locations: Allow other DirectiveLocation other than the ones supported by library
     :param add_definition_to_schema: If false, the @directive definition is not added to the graphql schema
-    :param non_field_validator: a validator function
+    :param non_field_validator: a non field validator function
                 def validator (type_: graphene type, inputs: Any, schema: Schema) -> bool,
                     if validator returns False, library raises DirectiveCustomValidationError
-    :param field_validator: a validator function
+    :param field_validator: a field validator function
                 def validator (parent_type_: graphene_type, field_type_: graphene type, inputs: Any, schema: Schema) -> bool,
                     if validator returns False, library raises DirectiveCustomValidationError
 
+    :param input_transform: a function to transform the input arg's values before usage
+                def input_transform (inputs: dict[str, Any], schema: Schema) -> dict[str, Any]
 
     """
 
@@ -115,6 +118,7 @@ def CustomDirective(  # noqa
         supports_non_field_types=supports_non_field_types,
         non_field_validator=non_field_validator,
         field_validator=field_validator,
+        input_transform=input_transform,
     )
 
     # Check if target_directive.locations have accepted types

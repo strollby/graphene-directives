@@ -22,6 +22,15 @@ from graphene_directives import (
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
 
+def input_transform(inputs: dict, _schema: Schema) -> dict:
+    """
+    def input_transform (inputs: Any, schema: Schema) -> dict,
+    """
+    if inputs.get("max_age") > 200:
+        inputs["swr"] = 30
+    return inputs
+
+
 def validate_non_field_input(_type: Any, inputs: dict, _schema: Schema) -> bool:
     """
     def validator (type_: graphene type, inputs: Any, schema: Schema) -> bool,
@@ -71,6 +80,7 @@ CacheDirective = CustomDirective(
     description="Caching directive to control cache behavior of fields or fragments.",
     non_field_validator=validate_non_field_input,
     field_validator=validate_field_input,
+    input_transform=input_transform,
 )
 
 

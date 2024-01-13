@@ -30,7 +30,7 @@ directive @repeatable_directive(
   serviceName: String!
 ) repeatable on OBJECT | FIELD_DEFINITION
 
-union SearchResult @cache(maxAge: 500) @authenticated(required: true) = Human | Droid | Starship
+union SearchResult @cache(maxAge: 500, swr: 30) @authenticated(required: true) = Human | Droid | Starship
 
 type Human @cache(maxAge: 60) {
   name: String
@@ -39,7 +39,7 @@ type Human @cache(maxAge: 60) {
 
 type Droid  @cache(maxAge: 200) {
   """Test Description"""
-  name: String @deprecated(reason: "Deprecated use born in") @cache(maxAge: 300)
+  name: String @deprecated(reason: "Deprecated use born in") @cache(maxAge: 300, swr: 30)
   primaryFunction: String
 }
 
@@ -61,7 +61,7 @@ type Admin @internal @key {
 input HumanInput  @cache(maxAge: 60) @authenticated(required: true) {
   bornIn: String
   """Test Description"""
-  name: String @deprecated(reason: "Deprecated use born in") @cache(maxAge: 300)
+  name: String @deprecated(reason: "Deprecated use born in") @cache(maxAge: 300, swr: 30)
 }
 
 enum TruthEnum  @cache(maxAge: 100) @authenticated(required: true) {
@@ -69,7 +69,7 @@ enum TruthEnum  @cache(maxAge: 100) @authenticated(required: true) {
   B
 }
 
-scalar DateNewScalar @cache(maxAge: 500) @authenticated(required: true)
+scalar DateNewScalar @cache(maxAge: 500, swr: 30) @authenticated(required: true)
 
 type User  @authenticated(required: true) {
   name: String
