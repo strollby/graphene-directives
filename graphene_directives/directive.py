@@ -9,7 +9,6 @@ from .constants import ACCEPTED_TYPES, FIELD_TYPES, LOCATION_NON_FIELD_VALIDATOR
 from .constants import DirectiveLocation
 from .data_models import CustomDirectiveMeta
 from .exceptions import (
-    DirectiveCustomValidationError,
     DirectiveInvalidArgTypeError,
     DirectiveInvalidTypeError,
     DirectiveValidationError,
@@ -28,8 +27,8 @@ def CustomDirective(  # noqa
     ast_node: Optional[ast.DirectiveDefinitionNode] = None,
     allow_all_directive_locations: bool = False,
     add_definition_to_schema: bool = True,
-    non_field_validator: Callable[[Any, dict[str, Any]], bool] = None,
-    field_validator: Callable[[Any, Any, dict[str, Any]], bool] = None,
+    non_field_validator: Callable[[Any, dict[str, Any], Any], bool] = None,
+    field_validator: Callable[[Any, Any, dict[str, Any], Any], bool] = None,
 ) -> GraphQLDirective:
     """
     Creates a GraphQLDirective
@@ -45,11 +44,11 @@ def CustomDirective(  # noqa
     :param allow_all_directive_locations: Allow other DirectiveLocation other than the ones supported by library
     :param add_definition_to_schema: If false, the @directive definition is not added to the graphql schema
     :param non_field_validator: a validator function
-                      def validator (type_: graphene type, inputs: Any) -> bool,
-                      if validator returns False, library raises DirectiveCustomValidationError
+                def validator (type_: graphene type, inputs: Any, schema: Schema) -> bool,
+                    if validator returns False, library raises DirectiveCustomValidationError
     :param field_validator: a validator function
-                      def validator (parent_type_: graphene_type, field_type_: graphene type, inputs: Any) -> bool,
-                      if validator returns False, library raises DirectiveCustomValidationError
+                def validator (parent_type_: graphene_type, field_type_: graphene type, inputs: Any, schema: Schema) -> bool,
+                    if validator returns False, library raises DirectiveCustomValidationError
 
 
     """
@@ -154,7 +153,6 @@ def directive(
 
     kwargs = {to_camel_case(field): value for (field, value) in _kwargs.items()}
     directive_name = str(target_directive)
-    non_field_validator = meta_data.non_field_validator
 
     kwargs = parse_argument_values(target_directive, kwargs)
 
@@ -170,11 +168,6 @@ def directive(
         ):
             raise DirectiveValidationError(
                 f"{directive_name} cannot be used for {type_}, valid levels are: {[str(i) for i in meta_data.valid_types]}"
-            )
-
-        if non_field_validator is not None and not non_field_validator(type_, _kwargs):
-            raise DirectiveCustomValidationError(
-                f"Custom Validation Failed for {directive_name} with args: ({kwargs}) at non field level {type_}"
             )
 
         set_attribute_value(
