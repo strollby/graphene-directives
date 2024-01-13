@@ -154,6 +154,15 @@ from graphql import (
 from graphene_directives import CustomDirective, DirectiveLocation, Schema, build_schema, directive_decorator
 
 
+def input_transform(inputs: dict, _schema: Schema) -> dict:
+    """
+    def input_transform (inputs: Any, schema: Schema) -> dict,
+    """
+    if inputs.get("max_age") > 200:
+        inputs["swr"] = 30
+    return inputs
+
+
 def validate_non_field_input(_type: Any, inputs: dict, _schema: Schema) -> bool:
     """
     def validator (type_: graphene type, inputs: Any, schema: Schema) -> bool,
@@ -194,6 +203,7 @@ CacheDirective = CustomDirective(
     description="Caching directive to control cache behavior of fields or fragments.",
     non_field_validator=validate_non_field_input,
     field_validator=validate_field_input,
+    input_transform=input_transform,
 )
 
 # This returns a partial of directive function

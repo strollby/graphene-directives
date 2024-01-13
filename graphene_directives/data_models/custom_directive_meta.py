@@ -13,6 +13,9 @@ class CustomDirectiveMeta:
     non_field_types: set[GrapheneDirectiveLocation]
     supports_field_types: bool
     supports_non_field_types: bool
+    input_transform: Union[
+        Callable[[dict[str, Any], Any], dict[str, Any]], None
+    ]  # (args, schema) -> args
     non_field_validator: Union[
         Callable[[Any, dict[str, Any], Any], bool], None
     ]  # (type, args, schema) -> valid

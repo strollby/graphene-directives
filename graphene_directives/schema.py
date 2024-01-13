@@ -5,7 +5,7 @@ import graphene
 from graphene import Schema as GrapheneSchema
 from graphene.types.scalars import ScalarOptions
 from graphene.types.union import UnionOptions
-from graphene.utils.str_converters import to_camel_case, to_snake_case
+from graphene.utils.str_converters import to_camel_case
 from graphql import (
     DirectiveLocation,
     GraphQLArgument,
@@ -32,6 +32,8 @@ from .data_models.schema_directive import SchemaDirective
 from .directive import CustomDirectiveMeta
 from .exceptions import DirectiveCustomValidationError, DirectiveValidationError
 from .parsers import (
+    arg_camel_case,
+    arg_snake_case,
     decorator_string,
     entity_type_to_fields_string,
     enum_type_to_fields_string,
@@ -125,6 +127,10 @@ class Schema(GrapheneSchema):
             for directive in self.directives:
                 if has_field_attribute(arg, directive):
                     directive_values = get_field_attribute_value(arg, directive)
+                    meta_data: CustomDirectiveMeta = getattr(
+                        directive, "_graphene_directive"
+                    )
+
                     if required_directive_field_types in set(directive.locations):
                         raise DirectiveValidationError(
                             ", ".join(
@@ -135,7 +141,15 @@ class Schema(GrapheneSchema):
                                 ]
                             )
                         )
+
                     for directive_value in directive_values:
+                        if meta_data.input_transform is not None:
+                            directive_value = arg_camel_case(
+                                meta_data.input_transform(
+                                    arg_snake_case(directive_value), self
+                                )
+                            )
+
                         directive_str = decorator_string(directive, **directive_value)
                         directives.append(directive_str)
 
@@ -251,7 +265,6 @@ class Schema(GrapheneSchema):
                     meta_data: CustomDirectiveMeta = getattr(
                         directive, "_graphene_directive"
                     )
-                    field_validator = meta_data.field_validator
 
                     if required_directive_field_types in set(directive.locations):
                         raise DirectiveValidationError(
@@ -264,11 +277,14 @@ class Schema(GrapheneSchema):
                             )
                         )
                     for directive_value in directive_values:
-                        if field_validator is not None and not field_validator(
-                            entity_type,
-                            field,
-                            {to_snake_case(k): v for k, v in directive_value.items()},
-                            self,
+                        if (
+                            meta_data.field_validator is not None
+                            and not meta_data.field_validator(
+                                entity_type,
+                                field,
+                                arg_snake_case(directive_value),
+                                self,
+                            )
                         ):
                             raise DirectiveCustomValidationError(
                                 ", ".join(
@@ -276,6 +292,13 @@ class Schema(GrapheneSchema):
                                         f"Custom Validation Failed for {str(directive)} with args: ({directive_value})"
                                         f"at field level {entity_name}:{field}"
                                     ]
+                                )
+                            )
+
+                        if meta_data.input_transform is not None:
+                            directive_value = arg_camel_case(
+                                meta_data.input_transform(
+                                    arg_snake_case(directive_value), self
                                 )
                             )
 
@@ -347,12 +370,7 @@ class Schema(GrapheneSchema):
                         if (
                             meta_data.non_field_validator is not None
                             and not meta_data.non_field_validator(
-                                non_field,
-                                {
-                                    to_snake_case(k): v
-                                    for k, v in directive_value.items()
-                                },
-                                self,
+                                non_field, arg_snake_case(directive_value), self
                             )
                         ):
                             raise DirectiveCustomValidationError(
@@ -363,6 +381,13 @@ class Schema(GrapheneSchema):
                                     ]
                                 )
                             )
+                        if meta_data.input_transform is not None:
+                            directive_value = arg_camel_case(
+                                meta_data.input_transform(
+                                    arg_snake_case(directive_value), self
+                                )
+                            )
+
                         directive_annotations.append(
                             f"{decorator_string(directive, **directive_value)}"
                         )
