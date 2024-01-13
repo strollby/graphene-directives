@@ -16,17 +16,17 @@ directive @authenticated(
   required: Boolean!
 ) on OBJECT | INTERFACE | ENUM | ENUM_VALUE | UNION | INPUT_OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION | SCALAR
 
-interface Animal  @cache(maxAge: 100) @authenticated(required: True) {
+interface Animal  @cache(maxAge: 100) @authenticated(required: true) {
   age: Int!
   kind: Int! @cache(maxAge: 60)
 }
 
-enum TruthEnum  @cache(maxAge: 100) @authenticated(required: True) {
-  A @authenticated(required: True)
+enum TruthEnum  @cache(maxAge: 100) @authenticated(required: true) {
+  A @authenticated(required: true)
   B
 }
 
-input HumanInput  @cache(maxAge: 60) @authenticated(required: True) {
+input HumanInput  @cache(maxAge: 60) @authenticated(required: true) {
   bornIn: String
   """Test Description"""
   name: String @deprecated(reason: "Deprecated use born in") @cache(maxAge: 300)

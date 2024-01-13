@@ -31,7 +31,7 @@ directive @link(
   url: String!
 ) on SCHEMA
 
-union SearchResult @cache(maxAge: 500) @authenticated(required: True) = Human | Droid | Starship
+union SearchResult @cache(maxAge: 500) @authenticated(required: true) = Human | Droid | Starship
 
 type Human @cache(maxAge: 60) {
   name: String
@@ -49,39 +49,39 @@ type Starship  @cache(maxAge: 20) {
   length: Int @deprecated(reason: "Koo") @cache(maxAge: 60)
 }
 
-interface Animal  @cache(maxAge: 100) @authenticated(required: True) {
+interface Animal  @cache(maxAge: 100) @authenticated(required: true) {
   age: Int!
   kind: Int! @cache(maxAge: 60)
 }
 
-type Admin  @authenticated(required: True) {
+type Admin  @authenticated(required: true) {
   name: String
   password: String
   price(
     currency: Int @deprecated(reason: "Use country") @hidden
 
     """Country"""
-    country: Int @authenticated(required: True) @hidden
+    country: Int @authenticated(required: true) @hidden
   ): String
 }
 
-input HumanInput  @cache(maxAge: 60) @authenticated(required: True) {
+input HumanInput  @cache(maxAge: 60) @authenticated(required: true) {
   bornIn: String
   """Test Description"""
   name: String @deprecated(reason: "Deprecated use born in") @cache(maxAge: 300)
 }
 
-enum TruthEnum  @cache(maxAge: 100) @authenticated(required: True) {
-  A @authenticated(required: True)
+enum TruthEnum  @cache(maxAge: 100) @authenticated(required: true) {
+  A @authenticated(required: true)
   B
 }
 
-scalar DateNewScalar @cache(maxAge: 500) @authenticated(required: True)
+scalar DateNewScalar @cache(maxAge: 500) @authenticated(required: true)
 
-type User  @authenticated(required: True) {
+type User  @authenticated(required: true) {
   name: String
   password: String
-  price(currency: Int @hidden, country: Int @authenticated(required: True) @hidden): String
+  price(currency: Int @hidden, country: Int @authenticated(required: true) @hidden): String
 }
 
 type Query {
