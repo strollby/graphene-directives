@@ -28,6 +28,12 @@ def build_schema(
         else:
             _schema_directive_set.add(schema_directive.target_directive.name)
 
+    _directive_set: set[str] = set()
+    for directive in directives or []:
+        if directive.name in _directive_set:
+            raise DirectiveValidationError(f"Duplicate {directive} found")
+        _directive_set.add(directive.name)
+
     return Schema(
         query=query,
         mutation=mutation,

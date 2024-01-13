@@ -62,6 +62,7 @@ class Schema(GrapheneSchema):
         self.directives = directives or []
         self.schema_directives = schema_directives or []
         self.auto_camelcase = auto_camelcase
+        self.directives_used: dict[str, GraphQLDirective] = {}
         super().__init__(
             query=query,
             mutation=mutation,
@@ -360,9 +361,7 @@ class Schema(GrapheneSchema):
 
     def get_directive_applied_non_field_types(self) -> set:
         """
-        Find all the extended types from the schema.
-        They can be easily distinguished from the other type as
-        the `@directive` decorator adds a `_{name}` attribute to them.
+        Find all the directive applied non-field types from the schema.
         """
         directives_types = set()
         schema_types = {
@@ -378,10 +377,14 @@ class Schema(GrapheneSchema):
                 continue
             for directive in self.directives:
                 if has_non_field_attribute(schema_type.graphene_type, directive):
+                    self.directives_used[directive.name] = directive
                     directives_types.add(schema_type.graphene_type)
         return directives_types
 
     def get_directive_applied_field_types(self) -> set:
+        """
+        Find all the directive applied field types from the schema.
+        """
         directives_fields = set()
         schema_types = {
             **self.graphql_schema.type_map,
@@ -414,6 +417,7 @@ class Schema(GrapheneSchema):
                 )
                 for directive_ in self.directives:
                     if has_field_attribute(field_type, directive_):
+                        self.directives_used[directive_.name] = directive_
                         directives_fields.add(entity_type.graphene_type)
 
                     # Handle Argument Decorators
@@ -431,9 +435,18 @@ class Schema(GrapheneSchema):
                                     raise DirectiveValidationError(
                                         f"{directive_} cannot be used at argument level at {entity_type}->{field}"
                                     )
+                                self.directives_used[directive_.name] = directive_
                                 directives_fields.add(entity_type.graphene_type)
 
         return directives_fields
+
+    def get_directives_used(self) -> list[GraphQLDirective]:
+        """
+        Returns a list of directives used in the schema
+        """
+        self.get_directive_applied_field_types()
+        self.get_directive_applied_non_field_types()
+        return list(self.directives_used.values())
 
     def __str__(self):
         string_schema = ""
