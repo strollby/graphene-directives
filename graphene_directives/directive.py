@@ -28,7 +28,8 @@ def CustomDirective(  # noqa
     ast_node: Optional[ast.DirectiveDefinitionNode] = None,
     allow_all_directive_locations: bool = False,
     add_definition_to_schema: bool = True,
-    validator: Callable[[GraphQLDirective, Any], bool] = None,
+    non_field_validator: Callable[[Any, dict[str, Any]], bool] = None,
+    field_validator: Callable[[Any, Any, dict[str, Any]], bool] = None,
 ) -> GraphQLDirective:
     """
     Creates a GraphQLDirective
@@ -43,7 +44,11 @@ def CustomDirective(  # noqa
     :param locations: list[DirectiveLocation], if need to use unsupported locations, set allow_all_directive_locations True
     :param allow_all_directive_locations: Allow other DirectiveLocation other than the ones supported by library
     :param add_definition_to_schema: If false, the @directive definition is not added to the graphql schema
-    :param validator: a validator function def validator (directive: GraphQLDirective, inputs: Any) -> bool,
+    :param non_field_validator: a validator function
+                      def validator (type_: graphene type, inputs: Any) -> bool,
+                      if validator returns False, library raises DirectiveCustomValidationError
+    :param field_validator: a validator function
+                      def validator (parent_type_: graphene_type, field_type_: graphene type, inputs: Any) -> bool,
                       if validator returns False, library raises DirectiveCustomValidationError
 
 
@@ -59,7 +64,7 @@ def CustomDirective(  # noqa
             f"directive @{name} add_definition_to_schema type invalid expected bool"
         )
 
-    if not (isinstance(validator, Callable) or validator is None):
+    if not (isinstance(non_field_validator, Callable) or non_field_validator is None):
         raise DirectiveInvalidArgTypeError(
             f"directive @{name} validator type invalid expected Callable[[GraphQLDirective, Any], bool] "
         )
@@ -109,7 +114,8 @@ def CustomDirective(  # noqa
         non_field_types=non_field_types,
         supports_field_types=supports_field_types,
         supports_non_field_types=supports_non_field_types,
-        validator=validator,
+        non_field_validator=non_field_validator,
+        field_validator=field_validator,
     )
 
     # Check if target_directive.locations have accepted types
@@ -148,13 +154,9 @@ def directive(
 
     kwargs = {to_camel_case(field): value for (field, value) in _kwargs.items()}
     directive_name = str(target_directive)
-    custom_validator = meta_data.validator
+    non_field_validator = meta_data.non_field_validator
 
     kwargs = parse_argument_values(target_directive, kwargs)
-    if custom_validator is not None and not custom_validator(target_directive, _kwargs):
-        raise DirectiveCustomValidationError(
-            f"Custom Validation Failed for {directive_name} with args: ({kwargs})"
-        )
 
     def decorator(type_: Any) -> Any:
         if not meta_data.supports_non_field_types:
@@ -168,6 +170,11 @@ def directive(
         ):
             raise DirectiveValidationError(
                 f"{directive_name} cannot be used for {type_}, valid levels are: {[str(i) for i in meta_data.valid_types]}"
+            )
+
+        if non_field_validator is not None and not non_field_validator(type_, _kwargs):
+            raise DirectiveCustomValidationError(
+                f"Custom Validation Failed for {directive_name} with args: ({kwargs}) at non field level {type_}"
             )
 
         set_attribute_value(

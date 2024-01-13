@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 import graphene
 import pytest
@@ -18,7 +18,7 @@ from graphene_directives import (
     directive,
 )
 
-curr_dir = os.path.dirname(os.path.realpath(__file__))
+curr_dir = Path(__file__).parent
 
 
 CacheDirective = CustomDirective(

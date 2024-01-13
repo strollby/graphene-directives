@@ -20,7 +20,7 @@ type Query {
   animals: Animal @deprecated(reason: "Koo")
 }
 
-interface Animal  @cache(maxAge: 30) @cache(maxAge: 100) @authenticated(required: True) {
+interface Animal  @cache(maxAge: 30) @cache(maxAge: 100) @authenticated(required: true) {
   age: Int!
   kind: Int! @deprecated(reason: "This field is deprecated and will be removed in future") @cache(maxAge: 20) @cache(maxAge: 60)
 }

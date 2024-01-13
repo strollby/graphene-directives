@@ -28,6 +28,7 @@ from graphql.utilities.print_schema import (
     print_input_value,
 )
 
+from . import DirectiveCustomValidationError
 from .data_models import SchemaDirective
 from .directive import CustomDirectiveMeta
 from .exceptions import DirectiveValidationError
@@ -61,7 +62,7 @@ class Schema(GrapheneSchema):
         self.directives = directives or []
         self.schema_directives = schema_directives or []
         self.auto_camelcase = auto_camelcase
-        self.schema_directives = schema_directives or []
+        self.directives_used: dict[str, GraphQLDirective] = {}
         super().__init__(
             query=query,
             mutation=mutation,
@@ -210,10 +211,13 @@ class Schema(GrapheneSchema):
 
                     # Replace Arguments with directives
                     if hasattr(entity_type, "_fields"):
-                        arg_field = getattr(
-                            entity_type._fields.args[0],  # noqa
-                            to_snake_case(field_name),
-                        )
+                        _arg = entity_type._fields.args[0]  # noqa
+                        if hasattr(_arg, to_snake_case(field_name)):
+                            arg_field = getattr(_arg, to_snake_case(field_name))
+                        elif hasattr(_arg, to_camel_case(field_name)):
+                            arg_field = getattr(_arg, to_camel_case(field_name))
+                        else:
+                            arg_field = {}
 
                         if (
                             hasattr(arg_field, "args")
@@ -240,25 +244,48 @@ class Schema(GrapheneSchema):
                     graphene_type, get_field_graphene_type(field_name), None
                 )
                 if field is None:
+                    # Append the string, but skip the directives
+                    str_fields.append(str_field)
                     continue
 
                 for directive in self.directives:
-                    if has_field_attribute(field, directive):
-                        directive_values = get_field_attribute_value(field, directive)
-                        if required_directive_field_types in set(directive.locations):
-                            raise DirectiveValidationError(
+                    if not has_field_attribute(field, directive):
+                        continue
+                    directive_values = get_field_attribute_value(field, directive)
+
+                    meta_data: CustomDirectiveMeta = getattr(
+                        directive, "_graphene_directive"
+                    )
+                    field_validator = meta_data.field_validator
+
+                    if required_directive_field_types in set(directive.locations):
+                        raise DirectiveValidationError(
+                            ", ".join(
+                                [
+                                    f"{str(directive)} cannot be used at field level",
+                                    allowed_locations,
+                                    f"at {entity_name}",
+                                ]
+                            )
+                        )
+                    for directive_value in directive_values:
+                        if field_validator is not None and not field_validator(
+                            entity_type,
+                            field,
+                            {to_snake_case(k): v for k, v in directive_value.items()},
+                        ):
+                            raise DirectiveCustomValidationError(
                                 ", ".join(
                                     [
-                                        f"{str(directive)} cannot be used at field level",
-                                        allowed_locations,
-                                        f"at {entity_name}",
+                                        f"Custom Validation Failed for {str(directive)} with args: ({directive_value})"
+                                        f"at field level {entity_name}:{field}"
                                     ]
                                 )
                             )
-                        for directive_value in directive_values:
-                            str_field += (
-                                f" {decorator_string(directive, **directive_value)}"
-                            )
+
+                        str_field += (
+                            f" {decorator_string(directive, **directive_value)}"
+                        )
 
                 str_fields.append(str_field)
 
@@ -334,9 +361,7 @@ class Schema(GrapheneSchema):
 
     def get_directive_applied_non_field_types(self) -> set:
         """
-        Find all the extended types from the schema.
-        They can be easily distinguished from the other type as
-        the `@directive` decorator adds a `_{name}` attribute to them.
+        Find all the directive applied non-field types from the schema.
         """
         directives_types = set()
         schema_types = {
@@ -352,10 +377,14 @@ class Schema(GrapheneSchema):
                 continue
             for directive in self.directives:
                 if has_non_field_attribute(schema_type.graphene_type, directive):
+                    self.directives_used[directive.name] = directive
                     directives_types.add(schema_type.graphene_type)
         return directives_types
 
     def get_directive_applied_field_types(self) -> set:
+        """
+        Find all the directive applied field types from the schema.
+        """
         directives_fields = set()
         schema_types = {
             **self.graphql_schema.type_map,
@@ -365,15 +394,13 @@ class Schema(GrapheneSchema):
             },
         }
 
-        for schema_type_name, schema_type in schema_types.items():
+        for _, entity_type in schema_types.items():
             if (
-                not hasattr(schema_type, "graphene_type")  # noqa:SIM101
-                or isinstance(schema_type.graphene_type._meta, UnionOptions)  # noqa
-                or isinstance(schema_type.graphene_type._meta, ScalarOptions)  # noqa
+                not hasattr(entity_type, "graphene_type")  # noqa:SIM101
+                or isinstance(entity_type.graphene_type._meta, UnionOptions)  # noqa
+                or isinstance(entity_type.graphene_type._meta, ScalarOptions)  # noqa
             ):
                 continue
-
-            entity_type = self.graphql_schema.get_type(schema_type_name)
 
             fields = (
                 list(entity_type.values.values())  # Enum class fields
@@ -383,12 +410,14 @@ class Schema(GrapheneSchema):
 
             for field in fields:
                 field_type = (
-                    getattr(entity_type.graphene_type, field, None)
+                    getattr(entity_type.graphene_type, to_camel_case(field), None)
+                    or getattr(entity_type.graphene_type, to_snake_case(field), None)
                     if not is_enum_type(entity_type)
                     else field.value
                 )
                 for directive_ in self.directives:
                     if has_field_attribute(field_type, directive_):
+                        self.directives_used[directive_.name] = directive_
                         directives_fields.add(entity_type.graphene_type)
 
                     # Handle Argument Decorators
@@ -406,18 +435,23 @@ class Schema(GrapheneSchema):
                                     raise DirectiveValidationError(
                                         f"{directive_} cannot be used at argument level at {entity_type}->{field}"
                                     )
+                                self.directives_used[directive_.name] = directive_
                                 directives_fields.add(entity_type.graphene_type)
 
         return directives_fields
 
+    def get_directives_used(self) -> list[GraphQLDirective]:
+        """
+        Returns a list of directives used in the schema
+        """
+        self.get_directive_applied_field_types()
+        self.get_directive_applied_non_field_types()
+        return list(self.directives_used.values())
+
     def __str__(self):
         string_schema = ""
         string_schema += extend_schema_string(string_schema, self.schema_directives)
-
         string_schema += print_schema(self.graphql_schema)
-        regex = r"schema \{(\w|\!|\s|\:)*\}"
-        pattern = re.compile(regex)
-        string_schema = pattern.sub(" ", string_schema)
 
         field_types = self.get_directive_applied_field_types()
         non_field_types = self.get_directive_applied_non_field_types()

@@ -1,3 +1,4 @@
+import json
 import re
 from typing import Any, Collection, Dict, Union, cast
 
@@ -63,7 +64,7 @@ def decorator_string(directive: GraphQLDirective, **kwargs: dict) -> str:
     formatted_args = [
         (
             f"{to_camel_case(key)}: "
-            + (f'"{value}"' if isinstance(value, str) else str(value))
+            + (f'"{value}"' if isinstance(value, str) else json.dumps(value))
         )
         for key, value in kwargs.items()
         if value is not None and to_camel_case(key) in directive.args
@@ -78,11 +79,15 @@ def extend_schema_string(
 ) -> str:
     schema_directives_strings = []
     for schema_directive in schema_directives:
+        args = parse_argument_values(
+            schema_directive.target_directive,
+            {
+                to_camel_case(field): value
+                for (field, value) in schema_directive.arguments.items()
+            },
+        )
         schema_directives_strings.append(
-            "\t"
-            + decorator_string(
-                schema_directive.target_directive, **schema_directive.arguments
-            )
+            "\t" + decorator_string(schema_directive.target_directive, **args)
         )
 
     if len(schema_directives_strings) != 0:
