@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 import pytest
 from graphql import (
@@ -12,7 +12,7 @@ from graphql import (
 from graphene_directives import CustomDirective, DirectiveLocation
 from graphene_directives.exceptions import DirectiveInvalidArgTypeError
 
-curr_dir = os.path.dirname(os.path.realpath(__file__))
+curr_dir = Path(__file__).parent
 
 
 def test_invalid_location_types() -> None:

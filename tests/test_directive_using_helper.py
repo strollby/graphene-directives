@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 import graphene
 from graphql import GraphQLArgument, GraphQLInt, GraphQLNonNull, GraphQLString
@@ -10,7 +10,7 @@ from graphene_directives import (
     directive_decorator,
 )
 
-curr_dir = os.path.dirname(os.path.realpath(__file__))
+curr_dir = Path(__file__).parent
 
 CacheDirective = CustomDirective(
     name="cache",

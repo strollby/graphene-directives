@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 import graphene
 import pytest
@@ -7,8 +7,7 @@ from graphql import GraphQLArgument, GraphQLInt, GraphQLNonNull, GraphQLString
 from graphene_directives import CustomDirective, DirectiveLocation, directive
 from graphene_directives.exceptions import DirectiveInvalidArgValueTypeError
 
-curr_dir = os.path.dirname(os.path.realpath(__file__))
-
+curr_dir = Path(__file__).parent
 
 CacheDirective = CustomDirective(
     name="cache",

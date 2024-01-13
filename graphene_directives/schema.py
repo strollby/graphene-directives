@@ -62,7 +62,6 @@ class Schema(GrapheneSchema):
         self.directives = directives or []
         self.schema_directives = schema_directives or []
         self.auto_camelcase = auto_camelcase
-        self.schema_directives = schema_directives or []
         super().__init__(
             query=query,
             mutation=mutation,
