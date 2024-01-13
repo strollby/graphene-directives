@@ -154,11 +154,24 @@ from graphql import (
 from graphene_directives import CustomDirective, DirectiveLocation, ValidatorLocation, build_schema, directive_decorator
 
 
-def validate_input(_type: Any, _location_type: ValidatorLocation, inputs: dict) -> bool:
+def validate_non_field_input(_type: Any, inputs: dict) -> bool:
+    """
+    def validator (type_: graphene type, inputs: Any) -> bool,
+    if validator returns False, library raises DirectiveCustomValidationError
+    """
     if inputs.get("max_age") > 2500:
         return False
     return True
 
+
+def validate_field_input(_parent_type: Any, _field_type: Any, inputs: dict) -> bool:
+    """
+    def validator (parent_type_: graphene_type, field_type_: graphene type, inputs: Any) -> bool,
+    if validator returns False, library raises DirectiveCustomValidationError
+    """
+    if inputs.get("max_age") > 2500:
+        return False
+    return True
 
 CacheDirective = CustomDirective(
     name="cache",
@@ -176,7 +189,8 @@ CacheDirective = CustomDirective(
         ),
     },
     description="Caching directive to control cache behavior of fields or fragments.",
-    non_field_validator=validate_input,
+    non_field_validator=validate_non_field_input,
+    field_validator=validate_field_input,
 )
 
 # This returns a partial of directive function
