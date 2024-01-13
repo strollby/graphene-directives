@@ -392,15 +392,13 @@ class Schema(GrapheneSchema):
             },
         }
 
-        for schema_type_name, schema_type in schema_types.items():
+        for _, entity_type in schema_types.items():
             if (
-                not hasattr(schema_type, "graphene_type")  # noqa:SIM101
-                or isinstance(schema_type.graphene_type._meta, UnionOptions)  # noqa
-                or isinstance(schema_type.graphene_type._meta, ScalarOptions)  # noqa
+                not hasattr(entity_type, "graphene_type")  # noqa:SIM101
+                or isinstance(entity_type.graphene_type._meta, UnionOptions)  # noqa
+                or isinstance(entity_type.graphene_type._meta, ScalarOptions)  # noqa
             ):
                 continue
-
-            entity_type = self.graphql_schema.get_type(schema_type_name)
 
             fields = (
                 list(entity_type.values.values())  # Enum class fields
@@ -441,11 +439,7 @@ class Schema(GrapheneSchema):
     def __str__(self):
         string_schema = ""
         string_schema += extend_schema_string(string_schema, self.schema_directives)
-
         string_schema += print_schema(self.graphql_schema)
-        regex = r"schema \{(\w|\!|\s|\:)*\}"
-        pattern = re.compile(regex)
-        string_schema = pattern.sub(" ", string_schema)
 
         field_types = self.get_directive_applied_field_types()
         non_field_types = self.get_directive_applied_non_field_types()
