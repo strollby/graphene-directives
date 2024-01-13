@@ -5,7 +5,7 @@ import graphene
 from graphene import Schema as GrapheneSchema
 from graphene.types.scalars import ScalarOptions
 from graphene.types.union import UnionOptions
-from graphene.utils.str_converters import to_camel_case
+from graphene.utils.str_converters import to_camel_case, to_snake_case
 from graphql import (
     DirectiveLocation,
     GraphQLArgument,
@@ -453,11 +453,9 @@ class Schema(GrapheneSchema):
 
             for field in fields:
                 field_type = (
-                    getattr(
-                        entity_type.graphene_type,
-                        self.type_attribute_to_field_name(field),
-                        None,
-                    )
+                    # auto-camelcasing can cause problems
+                    getattr(entity_type.graphene_type, to_camel_case(field), None)
+                    or getattr(entity_type.graphene_type, to_snake_case(field), None)
                     if not is_enum_type(entity_type)
                     else field.value
                 )

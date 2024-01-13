@@ -237,6 +237,7 @@ class Admin(graphene.ObjectType):
 class User(graphene.ObjectType):
     name = graphene.String()
     password = graphene.String()
+    camel_cased = directive(HiddenDirective, field=graphene.String())
     price = graphene.Field(
         graphene.String,
         currency=directive(

@@ -81,6 +81,7 @@ scalar DateNewScalar @cache(maxAge: 500) @authenticated(required: true)
 type User  @authenticated(required: true) {
   name: String
   password: String
+  camelCased: String @hidden
   price(currency: Int @hidden, country: Int @authenticated(required: true) @hidden): String
 }
 
