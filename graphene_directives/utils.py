@@ -58,6 +58,13 @@ def set_attribute_value(
                 f"{target_directive} is not repeatable, at: {type_}"
             )
         kwargs_list: list = getattr(type_, attribute_name)
+
+        for prev_data in kwargs_list:
+            if prev_data == data:
+                raise DirectiveValidationError(
+                    f"{target_directive} is got duplicate values {data}, at: {type_}"
+                )
+
         kwargs_list.append(data)
     else:
         setattr(type_, attribute_name, [data])
