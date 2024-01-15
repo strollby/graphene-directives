@@ -21,6 +21,7 @@ from graphql import (
     is_union_type,
     print_schema,
 )
+from graphql import specified_directives
 from graphql.utilities.print_schema import (
     print_args,
     print_description,
@@ -59,11 +60,38 @@ class Schema(GrapheneSchema):
         directives: Union[Collection[GraphQLDirective], None] = None,
         auto_camelcase: bool = True,
         schema_directives: Collection[SchemaDirective] = None,
+        include_graphql_spec_directives: bool = True,
     ):
-        self.directives = directives or []
+        """
+        Schema Definition.
+
+        Args:
+            query (Type[ObjectType]): Root query *ObjectType*. Describes entry point for fields to *read*
+                data in your Schema.
+            mutation (Optional[Type[ObjectType]]): Root mutation *ObjectType*. Describes entry point for
+                fields to *create, update or delete* data in your API.
+            subscription (Optional[Type[ObjectType]]): Root subscription *ObjectType*. Describes entry point
+                for fields to receive continuous updates.
+            types (Optional[Collection[Type[ObjectType]]]): List of any types to include in schema that
+                may not be introspected through root types.
+            directives (List[GraphQLDirective], optional): List of custom directives to include in the
+                GraphQL schema.
+            auto_camelcase (bool): Fieldnames will be transformed in Schema's TypeMap from snake_case
+                to camelCase (preferred by GraphQL standard). Default True.
+            schema_directives (Collection[SchemaDirective]): Directives that can be defined at DIRECTIVE_LOCATION.SCHEMA
+                with their argument values.
+            include_graphql_spec_directives (bool): Includes directives defined by GraphQL spec (@include, @skip,
+                @deprecated, @specifiedBy)
+        """
+
+        self.custom_directives = directives or []
         self.schema_directives = schema_directives or []
         self.auto_camelcase = auto_camelcase
         self.directives_used: dict[str, GraphQLDirective] = {}
+
+        directives = tuple(self.custom_directives) + (
+            tuple(specified_directives) if include_graphql_spec_directives else ()
+        )
         super().__init__(
             query=query,
             mutation=mutation,
@@ -78,6 +106,12 @@ class Schema(GrapheneSchema):
     ) -> Callable[[str], str]:
         """
         Create field name conversion method (from schema name to actual graphene_type attribute name).
+
+        Args:
+            model (ObjectType): model whose field name is to be converted
+
+        Returns:
+            (str) -> (str)
         """
         field_names = {}
         if self.auto_camelcase:
@@ -97,13 +131,17 @@ class Schema(GrapheneSchema):
             return to_camel_case(attribute)
         return attribute
 
-    def add_argument_decorators(
+    def _add_argument_decorators(
         self,
         entity_name: str,
         allowed_locations: list[str],
         required_directive_field_types: set[DirectiveLocation],
         args: dict[str, GraphQLArgument],
     ) -> str:
+        """
+        For a given field, go through all its args and see if any directive decorator needs to be added.
+        """
+
         if not args:
             return ""
 
@@ -124,7 +162,7 @@ class Schema(GrapheneSchema):
                     + f"{print_input_value(name, arg)} "
                 )
             directives = []
-            for directive in self.directives:
+            for directive in self.custom_directives:
                 if has_field_attribute(arg, directive):
                     directive_values = get_field_attribute_value(arg, directive)
                     meta_data: CustomDirectiveMeta = getattr(
@@ -162,7 +200,7 @@ class Schema(GrapheneSchema):
 
         return str_field
 
-    def add_field_decorators(self, graphene_types: set, string_schema: str) -> str:
+    def _add_field_decorators(self, graphene_types: set, string_schema: str) -> str:
         """
         For a given entity, go through all its fields and see if any directive decorator needs to be added.
 
@@ -236,7 +274,7 @@ class Schema(GrapheneSchema):
                             original_args = print_args(
                                 args=field.args, indentation="  "
                             )
-                            replacement_args = self.add_argument_decorators(
+                            replacement_args = self._add_argument_decorators(
                                 entity_name=entity_name,
                                 allowed_locations=allowed_locations,
                                 required_directive_field_types=required_directive_field_types,
@@ -257,7 +295,7 @@ class Schema(GrapheneSchema):
                     str_fields.append(str_field)
                     continue
 
-                for directive in self.directives:
+                for directive in self.custom_directives:
                     if not has_field_attribute(field, directive):
                         continue
                     directive_values = get_field_attribute_value(field, directive)
@@ -358,7 +396,7 @@ class Schema(GrapheneSchema):
                 continue
 
             directive_annotations = []
-            for directive in self.directives:
+            for directive in self.custom_directives:
                 if has_non_field_attribute(non_field, directive):
                     meta_data: CustomDirectiveMeta = getattr(
                         directive, "_graphene_directive"
@@ -402,7 +440,7 @@ class Schema(GrapheneSchema):
 
         return string_schema
 
-    def get_directive_applied_non_field_types(self) -> set:
+    def _get_directive_applied_non_field_types(self) -> set:
         """
         Find all the directive applied non-field types from the schema.
         """
@@ -418,13 +456,13 @@ class Schema(GrapheneSchema):
         for schema_type in schema_types.values():
             if not hasattr(schema_type, "graphene_type"):
                 continue
-            for directive in self.directives:
+            for directive in self.custom_directives:
                 if has_non_field_attribute(schema_type.graphene_type, directive):
                     self.directives_used[directive.name] = directive
                     directives_types.add(schema_type.graphene_type)
         return directives_types
 
-    def get_directive_applied_field_types(self) -> set:
+    def _get_directive_applied_field_types(self) -> set:
         """
         Find all the directive applied field types from the schema.
         """
@@ -459,7 +497,7 @@ class Schema(GrapheneSchema):
                     if not is_enum_type(entity_type)
                     else field.value
                 )
-                for directive_ in self.directives:
+                for directive_ in self.custom_directives:
                     if has_field_attribute(field_type, directive_):
                         self.directives_used[directive_.name] = directive_
                         directives_fields.add(entity_type.graphene_type)
@@ -487,9 +525,10 @@ class Schema(GrapheneSchema):
     def get_directives_used(self) -> list[GraphQLDirective]:
         """
         Returns a list of directives used in the schema
+
         """
-        self.get_directive_applied_field_types()
-        self.get_directive_applied_non_field_types()
+        self._get_directive_applied_field_types()
+        self._get_directive_applied_non_field_types()
         return list(self.directives_used.values())
 
     def __str__(self):
@@ -497,13 +536,13 @@ class Schema(GrapheneSchema):
         string_schema += extend_schema_string(string_schema, self.schema_directives)
         string_schema += print_schema(self.graphql_schema)
 
-        field_types = self.get_directive_applied_field_types()
-        non_field_types = self.get_directive_applied_non_field_types()
+        field_types = self._get_directive_applied_field_types()
+        non_field_types = self._get_directive_applied_non_field_types()
 
-        string_schema = self.add_field_decorators(field_types, string_schema)
+        string_schema = self._add_field_decorators(field_types, string_schema)
         string_schema = self.add_non_field_decorators(non_field_types, string_schema)
 
-        for directive in self.directives:
+        for directive in self.custom_directives:
             meta_data: CustomDirectiveMeta = getattr(directive, "_graphene_directive")
             if not meta_data.add_definition_to_schema:
                 string_schema = string_schema.replace(

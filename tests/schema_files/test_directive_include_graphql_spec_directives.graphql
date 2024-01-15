@@ -1,0 +1,16 @@
+"""Caching directive to control cache behavior of fields or fragments."""
+directive @cache(
+  """Specifies the maximum age for cache in seconds."""
+  maxAge: Int!
+
+  """Stale-while-revalidate value in seconds. Optional."""
+  swr: Int
+
+  """Scope of the cache. Optional."""
+  scope: String
+) on OBJECT | INTERFACE | ENUM | UNION | INPUT_OBJECT | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | SCALAR
+
+type _TestClass  @cache(maxAge: 500) {
+  age: Int!
+  kind: Int! @deprecated(reason: "This field is deprecated and will be removed in future") @cache(maxAge: 500)
+}
