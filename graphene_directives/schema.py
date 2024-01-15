@@ -134,7 +134,6 @@ class Schema(GrapheneSchema):
     def _add_argument_decorators(
         self,
         entity_name: str,
-        allowed_locations: list[str],
         required_directive_field_types: set[DirectiveLocation],
         args: dict[str, GraphQLArgument],
     ) -> str:
@@ -169,13 +168,19 @@ class Schema(GrapheneSchema):
                         directive, "_graphene_directive"
                     )
 
-                    if required_directive_field_types in set(directive.locations):
+                    if (
+                        not required_directive_field_types.intersection(
+                            set(directive.locations)
+                        )
+                        and len(required_directive_field_types) != 0
+                    ):
                         raise DirectiveValidationError(
-                            ", ".join(
+                            "\n".join(
                                 [
                                     f"{str(directive)} cannot be used at argument {name} level",
-                                    allowed_locations,
-                                    f"at {entity_name}",
+                                    f"\tat {entity_name}",
+                                    f"\tallowed: {directive.locations}",
+                                    f"\trequired: {required_directive_field_types}",
                                 ]
                             )
                         )
@@ -214,19 +219,19 @@ class Schema(GrapheneSchema):
             entity_type = self.graphql_schema.get_type(entity_name)
             get_field_graphene_type = self.field_name_to_type_attribute(graphene_type)
 
-            required_directive_field_types = set()
+            required_directive_locations = set()
 
             if is_object_type(entity_type) or is_interface_type(entity_type):
-                required_directive_field_types.union(
+                required_directive_locations.union(
                     {
                         DirectiveLocation.FIELD_DEFINITION,
                         DirectiveLocation.ARGUMENT_DEFINITION,
                     }
                 )
             elif is_enum_type(entity_type):
-                required_directive_field_types.add(DirectiveLocation.ENUM_VALUE)
+                required_directive_locations.add(DirectiveLocation.ENUM_VALUE)
             elif is_input_type(entity_type):
-                required_directive_field_types.add(
+                required_directive_locations.add(
                     DirectiveLocation.INPUT_FIELD_DEFINITION
                 )
             else:
@@ -238,7 +243,6 @@ class Schema(GrapheneSchema):
                 fields: dict = entity_type.fields
 
             str_fields = []
-            allowed_locations = [str(t) for t in required_directive_field_types]
 
             for field_name, field in fields.items():
                 if is_enum_type(entity_type):
@@ -276,8 +280,7 @@ class Schema(GrapheneSchema):
                             )
                             replacement_args = self._add_argument_decorators(
                                 entity_name=entity_name,
-                                allowed_locations=allowed_locations,
-                                required_directive_field_types=required_directive_field_types,
+                                required_directive_field_types=required_directive_locations,
                                 args=arg_field.args,
                             )
                             str_field = str_field.replace(
@@ -304,16 +307,23 @@ class Schema(GrapheneSchema):
                         directive, "_graphene_directive"
                     )
 
-                    if required_directive_field_types in set(directive.locations):
+                    if (
+                        not required_directive_locations.intersection(
+                            set(directive.locations)
+                        )
+                        and len(required_directive_locations) != 0
+                    ):
                         raise DirectiveValidationError(
-                            ", ".join(
+                            "\n".join(
                                 [
                                     f"{str(directive)} cannot be used at field level",
-                                    allowed_locations,
-                                    f"at {entity_name}",
+                                    f"\tat {entity_name}",
+                                    f"\tallowed: {directive.locations}",
+                                    f"\trequired: {required_directive_locations}",
                                 ]
                             )
                         )
+
                     for directive_value in directive_values:
                         if (
                             meta_data.field_validator is not None
@@ -380,18 +390,26 @@ class Schema(GrapheneSchema):
             entity_name = non_field._meta.name  # noqa
             entity_type = self.graphql_schema.get_type(entity_name)
 
+            required_directive_locations = set()
+
             if is_scalar_type(entity_type):
                 non_field_pattern = rf"(scalar {entity_name})"
+                required_directive_locations.add(DirectiveLocation.SCALAR)
             elif is_union_type(entity_type):
                 non_field_pattern = rf"(union {entity_name} )"
+                required_directive_locations.add(DirectiveLocation.UNION)
             elif is_object_type(entity_type):
                 non_field_pattern = rf"(type {entity_name} [^\{{]*)"
+                required_directive_locations.add(DirectiveLocation.OBJECT)
             elif is_interface_type(entity_type):
                 non_field_pattern = rf"(interface {entity_name} [^\{{]*)"
+                required_directive_locations.add(DirectiveLocation.INTERFACE)
             elif is_enum_type(entity_type):
                 non_field_pattern = rf"(enum {entity_name} [^\{{]*)"
+                required_directive_locations.add(DirectiveLocation.ENUM)
             elif is_input_type(entity_type):
                 non_field_pattern = rf"(input {entity_name} [^\{{]*)"
+                required_directive_locations.add(DirectiveLocation.INPUT_OBJECT)
             else:
                 continue
 
@@ -404,6 +422,24 @@ class Schema(GrapheneSchema):
                     directive_values = get_non_field_attribute_value(
                         non_field, directive
                     )
+
+                    if (
+                        not required_directive_locations.intersection(
+                            set(directive.locations)
+                        )
+                        and len(required_directive_locations) != 0
+                    ):
+                        raise DirectiveValidationError(
+                            "\n".join(
+                                [
+                                    f"{str(directive)} cannot be used at non field level",
+                                    f"\tat {entity_name}",
+                                    f"\tallowed: {directive.locations}",
+                                    f"\trequired: {required_directive_locations}",
+                                ]
+                            )
+                        )
+
                     for directive_value in directive_values:
                         if (
                             meta_data.non_field_validator is not None
