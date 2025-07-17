@@ -1,0 +1,12 @@
+schema {
+  query: QueryNoDirective
+}
+
+type QueryNoDirective {
+  position: Position @deprecated(reason: "Koo\n\nDeprecated on 2025-01-01")
+}
+
+type Position {
+  x: Int!
+  y: Int!
+}
