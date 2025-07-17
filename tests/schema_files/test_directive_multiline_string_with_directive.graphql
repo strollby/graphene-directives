@@ -1,0 +1,24 @@
+schema {
+  query: QueryWithDirective
+}
+
+"""Caching directive to control cache behavior of fields or fragments."""
+directive @cache(
+  """Specifies the maximum age for cache in seconds."""
+  maxAge: Int!
+
+  """Stale-while-revalidate value in seconds. Optional."""
+  swr: Int
+
+  """Scope of the cache. Optional."""
+  scope: String
+) on OBJECT | INTERFACE | ENUM | UNION | INPUT_OBJECT | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | SCALAR
+
+type QueryWithDirective  {
+  position: Position @deprecated(reason: "Koo\n\nDeprecated on 2025-01-01") @cache(maxAge: 300)
+}
+
+type Position {
+  x: Int!
+  y: Int!
+}
