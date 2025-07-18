@@ -1,0 +1,24 @@
+"""Caching directive to control cache behavior of fields or fragments."""
+directive @cache(
+  """Specifies the maximum age for cache in seconds."""
+  maxAge: Int!
+
+  """Stale-while-revalidate value in seconds. Optional."""
+  swr: Int
+
+  """Scope of the cache. Optional."""
+  scope: String
+) repeatable on OBJECT | FIELD_DEFINITION
+
+type Query  {
+  position(someArg: Int! ): Position @cache(maxAge: 300)
+  """A field"""
+  field(someArg: Int! , someOtherArg: Int! ): Int
+  """An other field"""
+  someOtherField(someArg: Int!): String
+}
+
+type Position {
+  x: Int!
+  y: Int!
+}

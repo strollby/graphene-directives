@@ -4,7 +4,12 @@ import graphene
 import pytest
 from graphql import GraphQLArgument, GraphQLInt, GraphQLNonNull, GraphQLString
 
-from graphene_directives import CustomDirective, DirectiveLocation, directive
+from graphene_directives import (
+    CustomDirective,
+    DirectiveLocation,
+    directive,
+    build_schema,
+)
 from graphene_directives.exceptions import DirectiveInvalidArgValueTypeError
 
 curr_dir = Path(__file__).parent
@@ -90,3 +95,43 @@ def test_input_default_argument_on_field() -> None:
                 deprecation_reason="This field is deprecated and will be removed in future",
             ),
         )
+
+
+def test_field_argument_camel_casing() -> None:
+    """Test that argument names are converted to camel-case."""
+
+    class Position(graphene.ObjectType):
+        x = graphene.Int(required=True)
+        y = graphene.Int(required=True)
+
+    class Query(graphene.ObjectType):
+        # A decorated field with a directive that has an argument
+        position = directive(
+            CacheDirective,
+            field=graphene.Field(Position, some_arg=graphene.Int(required=True)),
+            max_age=300,
+        )
+
+        # A non-decorated field without directive that has an argument
+        field = graphene.Field(
+            graphene.Int,
+            some_arg=graphene.Int(required=True),
+            some_other_arg=graphene.Int(required=True),
+            description="A field",
+        )
+
+        # A non-decorated field with a name that gets camelCased without directive that has an argument
+        some_other_field = graphene.Field(
+            graphene.String,
+            some_arg=graphene.Int(required=True),
+            description="An other field",
+        )
+
+    schema_with_directive = build_schema(query=Query, directives=(CacheDirective,))
+
+    with open(
+        f"{curr_dir}/schema_files/test_directive_arguments_camel_case.graphql"
+    ) as f:
+        schema = str(schema_with_directive)
+
+        assert schema == f.read()

@@ -152,6 +152,7 @@ class Schema(GrapheneSchema):
         str_field = "(" if print_single_line else "(\n"
 
         for i, (name, arg) in enumerate(args.items()):
+            name = self.type_attribute_to_field_name(name)
             if print_single_line:
                 base_str = f"{print_input_value(name, arg)} "
             else:
