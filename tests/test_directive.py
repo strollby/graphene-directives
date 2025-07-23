@@ -27,9 +27,7 @@ def validate_non_field_input(_type: Any, inputs: dict, _schema: Schema) -> bool:
     def validator (type_: graphene type, inputs: Any, schema: Schema) -> bool,
     if validator returns False, library raises DirectiveCustomValidationError
     """
-    if inputs.get("max_age") > 2500:
-        return False
-    return True
+    return not inputs.get("max_age") > 2500
 
 
 def validate_field_input(
@@ -39,9 +37,7 @@ def validate_field_input(
     def validator (parent_type_: graphene_type, field_type_: graphene type, inputs: Any, schema: Schema) -> bool,
     if validator returns False, library raises DirectiveCustomValidationError
     """
-    if inputs.get("max_age") > 2500:
-        return False
-    return True
+    return not inputs.get("max_age") > 2500
 
 
 CacheDirective = CustomDirective(

@@ -1,6 +1,7 @@
 import json
 import re
-from typing import Any, Collection, Dict, Union, cast
+from typing import Any, Union, cast
+from collections.abc import Collection
 
 from graphene.utils.str_converters import to_camel_case, to_snake_case
 from graphql import (
@@ -99,9 +100,9 @@ def extend_schema_string(
 
 
 def parse_argument_values(
-    directive: GraphQLDirective, inputs: Dict[str, Any]
+    directive: GraphQLDirective, inputs: dict[str, Any]
 ) -> dict[str, Any]:
-    coerced_values: Dict[str, Any] = {}
+    coerced_values: dict[str, Any] = {}
     errors = []
 
     for var_name, var_arg_type in directive.args.items():
