@@ -1,4 +1,5 @@
-from typing import Collection, Type, Union
+from typing import Union
+from collections.abc import Collection
 
 import graphene
 from graphene import Schema as GrapheneSchema
@@ -11,10 +12,10 @@ from .schema import Schema
 
 
 def build_schema(
-    query: Union[graphene.ObjectType, Type[graphene.ObjectType]] = None,
-    mutation: Union[graphene.ObjectType, Type[graphene.ObjectType]] = None,
-    subscription: Union[graphene.ObjectType, Type[graphene.ObjectType]] = None,
-    types: Collection[Union[graphene.ObjectType, Type[graphene.ObjectType]]] = None,
+    query: Union[graphene.ObjectType, type[graphene.ObjectType]] = None,
+    mutation: Union[graphene.ObjectType, type[graphene.ObjectType]] = None,
+    subscription: Union[graphene.ObjectType, type[graphene.ObjectType]] = None,
+    types: Collection[Union[graphene.ObjectType, type[graphene.ObjectType]]] = None,
     directives: Union[Collection[GraphQLDirective], None] = None,
     auto_camelcase: bool = True,
     schema_directives: Collection[SchemaDirective] = None,
@@ -24,13 +25,13 @@ def build_schema(
     Build Schema.
 
     Args:
-        query (Type[ObjectType]): Root query *ObjectType*. Describes entry point for fields to *read*
+        query (type[ObjectType]): Root query *ObjectType*. Describes entry point for fields to *read*
             data in your Schema.
-        mutation (Optional[Type[ObjectType]]): Root mutation *ObjectType*. Describes entry point for
+        mutation (Optional[type[ObjectType]]): Root mutation *ObjectType*. Describes entry point for
             fields to *create, update or delete* data in your API.
-        subscription (Optional[Type[ObjectType]]): Root subscription *ObjectType*. Describes entry point
+        subscription (Optional[type[ObjectType]]): Root subscription *ObjectType*. Describes entry point
             for fields to receive continuous updates.
-        types (Optional[Collection[Type[ObjectType]]]): List of any types to include in schema that
+        types (Optional[Collection[type[ObjectType]]]): List of any types to include in schema that
             may not be introspected through root types.
         directives (List[GraphQLDirective], optional): List of custom directives to include in the
             GraphQL schema.

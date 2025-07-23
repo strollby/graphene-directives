@@ -1,5 +1,6 @@
 import re
-from typing import Callable, Collection, Union
+from typing import Callable, Union
+from collections.abc import Collection
 
 import graphene
 from graphene import Schema as GrapheneSchema
@@ -384,7 +385,7 @@ class Schema(GrapheneSchema):
             # see: https://github.com/strollby/graphene-directives/pull/10
             escaped_str_fields_annotated = str_fields_annotated.replace("\\", "\\\\")
             string_schema = pattern.sub(
-                r"\g<1> {\n%s\n}" % escaped_str_fields_annotated, string_schema
+                rf"\g<1> {{\n{escaped_str_fields_annotated}\n}}", string_schema
             )
         return string_schema
 

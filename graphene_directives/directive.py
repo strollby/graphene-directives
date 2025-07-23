@@ -1,5 +1,6 @@
 from functools import partial
-from typing import Any, Callable, Collection, Dict, Optional
+from typing import Any, Callable, Optional
+from collections.abc import Collection
 
 from graphene.utils.str_converters import to_camel_case
 from graphql import GraphQLArgument, GraphQLDirective
@@ -20,10 +21,10 @@ from .utils import field_attribute_name, non_field_attribute_name, set_attribute
 def CustomDirective(  # noqa
     name: str,
     locations: Collection[DirectiveLocation],
-    args: Optional[Dict[str, GraphQLArgument]] = None,
+    args: Optional[dict[str, GraphQLArgument]] = None,
     is_repeatable: bool = False,
     description: Optional[str] = None,
-    extensions: Optional[Dict[str, Any]] = None,
+    extensions: Optional[dict[str, Any]] = None,
     ast_node: Optional[ast.DirectiveDefinitionNode] = None,
     allow_all_directive_locations: bool = False,
     add_definition_to_schema: bool = True,
