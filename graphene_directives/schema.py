@@ -136,7 +136,8 @@ class Schema(GrapheneSchema):
         self,
         entity_name: str,
         required_directive_field_types: set[DirectiveLocation],
-        args: dict[str, GraphQLArgument],
+        original_args: dict[str, GraphQLArgument],
+        args: dict[str, graphene.Argument],
     ) -> str:
         """
         For a given field, go through all its args and see if any directive decorator needs to be added.
@@ -154,13 +155,14 @@ class Schema(GrapheneSchema):
 
         for i, (name, arg) in enumerate(args.items()):
             name = self.type_attribute_to_field_name(name)
+            gql_arg = original_args.get(name)
             if print_single_line:
-                base_str = f"{print_input_value(name, arg)} "
+                base_str = f"{print_input_value(name, gql_arg)} "
             else:
                 base_str = (
-                    print_description(arg, f"  {indentation}", not i)
+                    print_description(gql_arg, f"  {indentation}", not i)
                     + f"  {indentation}"
-                    + f"{print_input_value(name, arg)} "
+                    + f"{print_input_value(name, gql_arg)} "
                 )
             directives = []
             for directive in self.custom_directives:
@@ -283,6 +285,7 @@ class Schema(GrapheneSchema):
                             replacement_args = self._add_argument_decorators(
                                 entity_name=entity_name,
                                 required_directive_field_types=required_directive_locations,
+                                original_args=field.args,
                                 args=arg_field.args,
                             )
                             str_field = str_field.replace(

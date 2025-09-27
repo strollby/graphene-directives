@@ -1,6 +1,6 @@
+from collections.abc import Collection
 from functools import partial
 from typing import Any, Callable, Optional
-from collections.abc import Collection
 
 from graphene.utils.str_converters import to_camel_case
 from graphql import GraphQLArgument, GraphQLDirective
@@ -143,11 +143,25 @@ def CustomDirective(  # noqa
 
 
 def directive(
-    target_directive: GraphQLDirective, *, field: Optional[Any] = None, **_kwargs: Any
+    target_directive: GraphQLDirective,
+    *,
+    field: Optional[Any] = None,
+    args_via_dict: dict = None,
+    **kwargs: Any,
 ) -> Callable:
     """
     Decorator to use to add directive a given type of field.
+
+    :param target_directive: (GraphQLDirective param)
+    :param field: (graphene field/non field)
+    :param kwargs: (dict) pass the directive args as kwargs
+    :param args_via_dict: (dict) since `field` is a reserved keyword, you can use this to pass the args as a dict
+
+    Note: if both args_via_dict & kwargs are passed, they are merged with `kwargs` overriding values
+          of args_via_dict in case of collision
     """
+
+    kwargs = args_via_dict or {} | kwargs
 
     if not hasattr(target_directive, "_graphene_directive"):
         raise DirectiveInvalidTypeError(target_directive)
@@ -156,7 +170,9 @@ def directive(
 
     # Converting inputs to camel_case
 
-    kwargs = {to_camel_case(field): value for (field, value) in _kwargs.items()}
+    kwargs = {
+        to_camel_case(field_name): value for (field_name, value) in kwargs.items()
+    }
     directive_name = str(target_directive)
 
     kwargs = parse_argument_values(target_directive, kwargs)
