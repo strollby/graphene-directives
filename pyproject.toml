@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "graphene-directives"
-version = "0.4.8"
+version = "0.4.9"
 packages = [{include = "graphene_directives"}]
 description = "Schema Directives implementation for graphene"
 authors = ["Strollby <developers@strollby.com>"]
@@ -22,7 +22,8 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13"
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 
 [tool.poetry.dependencies]
