@@ -29,8 +29,8 @@ jobs:
           poetry install --with dev
       - name: Ruff check
         run: |
-          poetry run ruff check .
-          poetry run ruff format --diff .
+          poetry run ruff check . --preview
+          poetry run ruff format --preview --diff .
       - name: Test with pytest
         run: |
           poetry run pytest

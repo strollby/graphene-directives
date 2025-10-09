@@ -1,4 +1,4 @@
-from copy import deepcopy
+from copy import copy
 from typing import Any
 from typing import Union
 
@@ -26,7 +26,7 @@ def get_single_field_type(
     """
     Generates the schema for a type with just one given field
     """
-    new_entity = deepcopy(entity)
+    new_entity = copy(entity)
     setattr(
         new_entity, "values" if is_enum_type else "fields", {field_name: field_type}
     )

@@ -131,12 +131,10 @@ def CustomDirective(  # noqa
             str(i) for i in set(target_directive.locations).difference(ACCEPTED_TYPES)
         ]
         raise DirectiveValidationError(
-            ", ".join(
-                [
-                    f"{str(target_directive)}: Directives don't support types: {invalid_types}",
-                    f"allowed types: {[str(i) for i in ACCEPTED_TYPES]}",
-                ]
-            )
+            ", ".join([
+                f"{str(target_directive)}: Directives don't support types: {invalid_types}",
+                f"allowed types: {[str(i) for i in ACCEPTED_TYPES]}",
+            ])
         )
 
     return target_directive

@@ -179,14 +179,12 @@ class Schema(GrapheneSchema):
                         and len(required_directive_field_types) != 0
                     ):
                         raise DirectiveValidationError(
-                            "\n".join(
-                                [
-                                    f"{str(directive)} cannot be used at argument {name} level",
-                                    f"\tat {entity_name}",
-                                    f"\tallowed: {directive.locations}",
-                                    f"\trequired: {required_directive_field_types}",
-                                ]
-                            )
+                            "\n".join([
+                                f"{str(directive)} cannot be used at argument {name} level",
+                                f"\tat {entity_name}",
+                                f"\tallowed: {directive.locations}",
+                                f"\trequired: {required_directive_field_types}",
+                            ])
                         )
 
                     for directive_value in directive_values:
@@ -226,12 +224,10 @@ class Schema(GrapheneSchema):
             required_directive_locations = set()
 
             if is_object_type(entity_type) or is_interface_type(entity_type):
-                required_directive_locations.union(
-                    {
-                        DirectiveLocation.FIELD_DEFINITION,
-                        DirectiveLocation.ARGUMENT_DEFINITION,
-                    }
-                )
+                required_directive_locations.union({
+                    DirectiveLocation.FIELD_DEFINITION,
+                    DirectiveLocation.ARGUMENT_DEFINITION,
+                })
             elif is_enum_type(entity_type):
                 required_directive_locations.add(DirectiveLocation.ENUM_VALUE)
             elif is_input_type(entity_type):
@@ -319,14 +315,12 @@ class Schema(GrapheneSchema):
                         and len(required_directive_locations) != 0
                     ):
                         raise DirectiveValidationError(
-                            "\n".join(
-                                [
-                                    f"{str(directive)} cannot be used at field level",
-                                    f"\tat {entity_name}",
-                                    f"\tallowed: {directive.locations}",
-                                    f"\trequired: {required_directive_locations}",
-                                ]
-                            )
+                            "\n".join([
+                                f"{str(directive)} cannot be used at field level",
+                                f"\tat {entity_name}",
+                                f"\tallowed: {directive.locations}",
+                                f"\trequired: {required_directive_locations}",
+                            ])
                         )
 
                     for directive_value in directive_values:
@@ -340,12 +334,10 @@ class Schema(GrapheneSchema):
                             )
                         ):
                             raise DirectiveCustomValidationError(
-                                ", ".join(
-                                    [
-                                        f"Custom Validation Failed for {str(directive)} with args: ({directive_value})"
-                                        f"at field level {entity_name}:{field}"
-                                    ]
-                                )
+                                ", ".join([
+                                    f"Custom Validation Failed for {str(directive)} with args: ({directive_value})"
+                                    f"at field level {entity_name}:{field}"
+                                ])
                             )
 
                         if meta_data.input_transform is not None:
@@ -439,14 +431,12 @@ class Schema(GrapheneSchema):
                         and len(required_directive_locations) != 0
                     ):
                         raise DirectiveValidationError(
-                            "\n".join(
-                                [
-                                    f"{str(directive)} cannot be used at non field level",
-                                    f"\tat {entity_name}",
-                                    f"\tallowed: {directive.locations}",
-                                    f"\trequired: {required_directive_locations}",
-                                ]
-                            )
+                            "\n".join([
+                                f"{str(directive)} cannot be used at non field level",
+                                f"\tat {entity_name}",
+                                f"\tallowed: {directive.locations}",
+                                f"\trequired: {required_directive_locations}",
+                            ])
                         )
 
                     for directive_value in directive_values:
@@ -457,12 +447,10 @@ class Schema(GrapheneSchema):
                             )
                         ):
                             raise DirectiveCustomValidationError(
-                                ", ".join(
-                                    [
-                                        f"Custom Validation Failed for {str(directive)} with args: ({directive_value})"
-                                        f"at non-field level {entity_name}"
-                                    ]
-                                )
+                                ", ".join([
+                                    f"Custom Validation Failed for {str(directive)} with args: ({directive_value})"
+                                    f"at non-field level {entity_name}"
+                                ])
                             )
                         if meta_data.input_transform is not None:
                             directive_value = arg_camel_case(

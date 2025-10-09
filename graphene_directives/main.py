@@ -62,9 +62,9 @@ def build_schema(
         _directive_set.add(directive.name)
 
     # Validate if custom directive conflicts with graphql spec default directives
-    _duplicate_default_directives = _directive_set.intersection(
-        {directive.name for directive in specified_directives}
-    )
+    _duplicate_default_directives = _directive_set.intersection({
+        directive.name for directive in specified_directives
+    })
 
     if _duplicate_default_directives:
         formatted_directive_str = [f"@{str(i)}" for i in _duplicate_default_directives]

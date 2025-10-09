@@ -15,10 +15,8 @@ class SchemaDirective:
     def __post_init__(self):
         if GrapheneDirectiveLocation.SCHEMA not in self.target_directive.locations:
             raise DirectiveValidationError(
-                ". ".join(
-                    [
-                        f"{self.target_directive} cannot be used as schema directive",
-                        "Missing DirectiveLocation.SCHEMA in locations",
-                    ]
-                )
+                ". ".join([
+                    f"{self.target_directive} cannot be used as schema directive",
+                    "Missing DirectiveLocation.SCHEMA in locations",
+                ])
             )
