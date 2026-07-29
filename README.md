@@ -42,14 +42,14 @@ Schema Directives implementation for graphene
 
 ```python
 import graphene
-from graphql import (
-    GraphQLArgument,
-    GraphQLInt,
-    GraphQLNonNull,
-    GraphQLString,
-)
+from graphql import GraphQLArgument, GraphQLInt, GraphQLNonNull, GraphQLString
 
-from graphene_directives import CustomDirective, DirectiveLocation, build_schema, directive
+from graphene_directives import (
+    CustomDirective,
+    DirectiveLocation,
+    build_schema,
+    directive,
+)
 
 CacheDirective = CustomDirective(
     name="cache",
@@ -81,9 +81,7 @@ class Query(graphene.ObjectType):
     some_query = graphene.Field(SomeType)
 
 
-schema = build_schema(
-    query=Query, directives=[CacheDirective]
-) 
+schema = build_schema(query=Query, directives=[CacheDirective])
 ```
 
 
@@ -91,14 +89,14 @@ schema = build_schema(
 
 ```python
 import graphene
-from graphql import (
-    GraphQLArgument,
-    GraphQLInt,
-    GraphQLNonNull,
-    GraphQLString,
-)
+from graphql import GraphQLArgument, GraphQLInt, GraphQLNonNull, GraphQLString
 
-from graphene_directives import CustomDirective, DirectiveLocation, build_schema, directive_decorator
+from graphene_directives import (
+    CustomDirective,
+    DirectiveLocation,
+    build_schema,
+    directive_decorator,
+)
 
 CacheDirective = CustomDirective(
     name="cache",
@@ -133,9 +131,7 @@ class Query(graphene.ObjectType):
     some_query = graphene.Field(SomeType)
 
 
-schema = build_schema(
-    query=Query, directives=[CacheDirective]
-)
+schema = build_schema(query=Query, directives=[CacheDirective])
 ```
 
 ### Custom Input Validation
@@ -144,14 +140,15 @@ schema = build_schema(
 from typing import Any
 
 import graphene
-from graphql import (
-    GraphQLArgument,
-    GraphQLInt,
-    GraphQLNonNull,
-    GraphQLString,
-)
+from graphql import GraphQLArgument, GraphQLInt, GraphQLNonNull, GraphQLString
 
-from graphene_directives import CustomDirective, DirectiveLocation, Schema, build_schema, directive_decorator
+from graphene_directives import (
+    CustomDirective,
+    DirectiveLocation,
+    Schema,
+    build_schema,
+    directive_decorator,
+)
 
 
 def input_transform(inputs: dict, _schema: Schema) -> dict:
@@ -174,7 +171,7 @@ def validate_non_field_input(_type: Any, inputs: dict, _schema: Schema) -> bool:
 
 
 def validate_field_input(
-        _parent_type: Any, _field_type: Any, inputs: dict, _schema: Schema
+    _parent_type: Any, _field_type: Any, inputs: dict, _schema: Schema
 ) -> bool:
     """
     def validator (parent_type_: graphene_type, field_type_: graphene type, inputs: Any, schema: Schema) -> bool,
@@ -221,9 +218,7 @@ class Query(graphene.ObjectType):
     some_query = graphene.Field(SomeType)
 
 
-schema = build_schema(
-    query=Query, directives=[CacheDirective]
-)
+schema = build_schema(query=Query, directives=[CacheDirective])
 ```
 
 

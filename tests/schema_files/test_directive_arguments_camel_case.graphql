@@ -15,7 +15,7 @@ type Query  {
   """A field"""
   field(someArg: Int! , someOtherArg: Int! ): Int
   """An other field"""
-  someOtherField(someArg: Int!): String
+  someOtherField(someArg: Int! ): String
 }
 
 type Position {

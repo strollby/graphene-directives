@@ -1,0 +1,20 @@
+"""Auth directive to control authorization behavior."""
+directive @authenticated(
+  """Auth required"""
+  required: Boolean!
+) on ARGUMENT_DEFINITION
+
+"""Requires directive to pull in fields from other services."""
+directive @requires(
+  """Fields required from other services."""
+  fields: String!
+) on FIELD_DEFINITION
+
+type Query  {
+  """desc"""
+  bananaSplit(accessToken: String @authenticated(required: true)): Meta @requires(fields: "id")
+}
+
+type Meta {
+  x: String
+}

@@ -263,9 +263,9 @@ class Schema(GrapheneSchema):
                     # Replace Arguments with directives
                     if hasattr(entity_type, "_fields"):
                         _arg = entity_type._fields.args[0]  # noqa
-                        if hasattr(_arg, self.type_attribute_to_field_name(field_name)):
+                        if hasattr(_arg, get_field_graphene_type(field_name)):
                             arg_field = getattr(
-                                _arg, self.type_attribute_to_field_name(field_name)
+                                _arg, get_field_graphene_type(field_name)
                             )
                         else:
                             arg_field = {}
@@ -335,8 +335,8 @@ class Schema(GrapheneSchema):
                         ):
                             raise DirectiveCustomValidationError(
                                 ", ".join([
-                                    f"Custom Validation Failed for {str(directive)} with args: ({directive_value})"
-                                    f"at field level {entity_name}:{field}"
+                                    f"Custom Validation Failed for {str(directive)} with args: ({directive_value})",
+                                    f"at field level {entity_name}:{field}",
                                 ])
                             )
 
@@ -448,8 +448,8 @@ class Schema(GrapheneSchema):
                         ):
                             raise DirectiveCustomValidationError(
                                 ", ".join([
-                                    f"Custom Validation Failed for {str(directive)} with args: ({directive_value})"
-                                    f"at non-field level {entity_name}"
+                                    f"Custom Validation Failed for {str(directive)} with args: ({directive_value})",
+                                    f"at non-field level {entity_name}",
                                 ])
                             )
                         if meta_data.input_transform is not None:

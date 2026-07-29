@@ -2,7 +2,13 @@ from pathlib import Path
 
 import graphene
 import pytest
-from graphql import GraphQLArgument, GraphQLInt, GraphQLNonNull, GraphQLString
+from graphql import (
+    GraphQLArgument,
+    GraphQLBoolean,
+    GraphQLInt,
+    GraphQLNonNull,
+    GraphQLString,
+)
 
 from graphene_directives import (
     CustomDirective,
@@ -50,6 +56,29 @@ DbCacheDirective = CustomDirective(
         ),
     },
     description="Caching directive to control cache behavior of fields or fragments.",
+)
+
+AuthenticatedDirective = CustomDirective(
+    name="authenticated",
+    locations=[DirectiveLocation.ARGUMENT_DEFINITION],
+    args={
+        "required": GraphQLArgument(
+            GraphQLNonNull(GraphQLBoolean), description="Auth required"
+        )
+    },
+    description="Auth directive to control authorization behavior.",
+)
+
+RequiresDirective = CustomDirective(
+    name="requires",
+    locations=[DirectiveLocation.FIELD_DEFINITION],
+    args={
+        "fields": GraphQLArgument(
+            GraphQLNonNull(GraphQLString),
+            description="Fields required from other services.",
+        )
+    },
+    description="Requires directive to pull in fields from other services.",
 )
 
 
@@ -135,3 +164,36 @@ def test_field_argument_camel_casing() -> None:
         schema = str(schema_with_directive)
 
         assert schema == f.read()
+
+
+def test_argument_directive_survives_multiple_directives_on_field() -> None:
+    """Argument directives were silently dropped for multi-word field names
+    (e.g. `banana_split` -> `bananaSplit`) when also wrapped in a
+    field-level directive."""
+
+    class Meta(graphene.ObjectType):
+        x = graphene.String()
+
+    class Query(graphene.ObjectType):
+        banana_split = directive(
+            RequiresDirective,
+            field=graphene.Field(
+                Meta,
+                access_token=directive(
+                    AuthenticatedDirective,
+                    field=graphene.Argument(graphene.String),
+                    required=True,
+                ),
+                description="desc",
+            ),
+            fields="id",
+        )
+
+    schema = build_schema(
+        query=Query, directives=(AuthenticatedDirective, RequiresDirective)
+    )
+
+    with open(
+        f"{curr_dir}/schema_files/test_directive_arguments_multiple_applied.graphql"
+    ) as f:
+        assert str(schema) == f.read()
