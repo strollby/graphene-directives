@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Protocol
 from collections.abc import Collection
 
 import graphene
@@ -11,6 +11,20 @@ from .data_models import SchemaDirective
 from .schema import Schema
 
 
+class SchemaFactory(Protocol):
+    def __call__(
+        self,
+        query: graphene.ObjectType = None,
+        mutation: graphene.ObjectType = None,
+        subscription: graphene.ObjectType = None,
+        types: list[graphene.ObjectType] = None,
+        directives: Union[Collection[GraphQLDirective], None] = None,
+        auto_camelcase: bool = True,
+        schema_directives: Collection[SchemaDirective] = None,
+        include_graphql_spec_directives: bool = True,
+    ) -> Schema: ...
+
+
 def build_schema(
     query: Union[graphene.ObjectType, type[graphene.ObjectType]] = None,
     mutation: Union[graphene.ObjectType, type[graphene.ObjectType]] = None,
@@ -20,6 +34,7 @@ def build_schema(
     auto_camelcase: bool = True,
     schema_directives: Collection[SchemaDirective] = None,
     include_graphql_spec_directives: bool = True,
+    schema_factory: SchemaFactory = Schema,
 ) -> GrapheneSchema:
     """
     Build Schema.
@@ -41,6 +56,8 @@ def build_schema(
             with their argument values.
         include_graphql_spec_directives (bool): Includes directives defined by GraphQL spec (@include, @skip,
             @deprecated, @specifiedBy)
+        schema_factory (SchemaFactory): GraphQL schema factory. Allows to customize the schema class used for building
+            the schema. Default is `Schema`.
     """
 
     _schema_directive_set: set[str] = set()
@@ -72,7 +89,7 @@ def build_schema(
             f"{formatted_directive_str} are reserved directives for client queries."
         )
 
-    return Schema(
+    return schema_factory(
         query=query,
         mutation=mutation,
         subscription=subscription,
